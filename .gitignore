@@ -1,0 +1,29 @@
+# ---> Go
+# Binaries for programs and plugins
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, build with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+*.db
+TODO
+
+meme3
+meme3_linux_amd64
+
+.env
+.idea
+*.DS_Store
+.gembot
+.handler-saves/
+__pycache__/
+test/
+dist/
+vendor/
+.backup/
+node_modules/
