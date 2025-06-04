@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	C_Msg_connection_init = "connection_init"
-	C_Msg_connection_ack  = "connection_ack"
+	C_Msg_connection_init = "init"
+	C_Msg_connection_ack  = "ack"
 	C_Msg_topic_subscribe = "subscribe"
 )
 
@@ -42,6 +42,8 @@ var (
 type Client struct {
 	ID string
 
+	PushCh chan struct{}
+
 	// The websocket connection.
 	conn *websocket.Conn
 
@@ -63,6 +65,7 @@ func NewClient(id string, conn *websocket.Conn) *Client {
 
 // A -> B, system -> B
 func (c *Client) Push(fromID, msgType string, payload any, bInit bool) {
+	slog.Debug("client push", slog.Any("client", c))
 	if !bInit {
 		if !c.Active && msgType != C_Msg_connection_init {
 			return
@@ -74,6 +77,7 @@ func (c *Client) Push(fromID, msgType string, payload any, bInit bool) {
 	}
 	msg := WrapMsg(fromID, c.ID, msgType, payload)
 	wbuf, _ := json.Marshal(msg)
+	slog.Debug("before send msg to client", "toID", c.ID, "msg", string(wbuf))
 	c.send <- wbuf
 }
 

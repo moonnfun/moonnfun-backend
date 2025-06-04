@@ -16,3 +16,9 @@ type Trade struct {
 	Timestamp   int64           `json:"timestamp"`
 	QuoteAmount decimal.Decimal `json:"quoteAmount"`
 }
+
+type Statistics struct {
+	TotalCreated int `json:"totalCreated"`
+	TotalOwned   int `json:"totalOwned"`
+	TotalTrading int `json:"totalTrading"`
+}

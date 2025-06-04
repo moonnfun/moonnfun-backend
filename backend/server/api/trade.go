@@ -70,14 +70,15 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 	iLimit, _ := strconv.Atoi(limit)
 	iOffset, _ := strconv.Atoi(offset)
 
-	tokenList, total, err := logic.GetTradeListPage(address, creator, tag, order, orderField, iOffset, iLimit)
+	tradeList, total, err := logic.GetModelListPage[model.Trade](model.C_Trade, address, creator, tag, order, orderField, iOffset, iLimit)
 	if err != nil {
 		WebResponseJson(w, r, ApiError(err.Error()), http.StatusOK)
 		return
 	}
+
 	if iLimit == 10 {
 		ret := make([]any, 0)
-		for _, trade := range tokenList {
+		for _, trade := range tradeList {
 			t, _ := logic.GetToken(trade.Address)
 			retTrade := struct {
 				model.Trade
@@ -89,6 +90,6 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 		}
 		WebResponseJson(w, r, ApiResponseList(ret, total), http.StatusOK)
 	} else {
-		WebResponseJson(w, r, ApiResponseList(tokenList, total), http.StatusOK)
+		WebResponseJson(w, r, ApiResponseList(tradeList, total), http.StatusOK)
 	}
 }

@@ -77,6 +77,7 @@ func Run(ctx context.Context, port int, router *httprouter.Router, allowCredenti
 	// n.Use(newRateLimite())
 	n.UseFunc(newAPILog)
 	// n.UseFunc(newAuth)
+
 	n.UseHandlerFunc(router.ServeHTTP)
 	server := &http.Server{Addr: fmt.Sprintf(":%v", port), Handler: n}
 

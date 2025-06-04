@@ -13,15 +13,21 @@ const Mainnet = "mainnet"
 const (
 	C_Msg_Topic_KLine = "kline"
 
-	C_Msg_Price_Init   = "price_init"
-	C_Msg_Price_Update = "price_update"
+	C_Msg_Price_Init   = "price_init_"
+	C_Msg_Price_Update = "price_update_"
 
 	C_PushMode_Sync  = "PushMode_Sync"
 	C_PushMode_ASync = "PushMode_ASync"
 )
 
+var WebsocketSubscribe func(id, address, topic string) chan struct{}
 var WebsocketHandler func(w http.ResponseWriter, r *http.Request) error
+var WebsocketSend func(fromID, toID, msgType string, payload any) error
 
 func Str(v any) string {
 	return fmt.Sprintf("%v", v)
+}
+
+func WssMsgType(prefix, topic string) string {
+	return fmt.Sprintf("%s%s", prefix, topic)
 }

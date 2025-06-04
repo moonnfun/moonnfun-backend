@@ -18,8 +18,7 @@ type User struct {
 	Address string `json:"address"`
 	Avatar  string `json:"avatar"`
 
-	OwnedTokens   []string `json:"ownedTokens"`
-	CreatedTokens []string `json:"createdTokens"`
+	TotalTrading int `json:"totalTrading"`
 
 	WebsocketClient any `json:"-" bson:"-"`
 }

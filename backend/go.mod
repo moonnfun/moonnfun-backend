@@ -9,7 +9,7 @@ require (
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/didip/tollbooth_negroni v0.0.0-20170928042109-a4e3efc33255
 	github.com/ethereum/go-ethereum v1.15.11
-	github.com/gorilla/securecookie v1.1.2
+	github.com/goincremental/negroni-sessions v0.0.0-20171223143234-40b49004abee
 	github.com/gorilla/sessions v1.4.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/julienschmidt/httprouter v1.3.0
@@ -45,6 +45,8 @@ require (
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/gorilla/context v1.1.2 // indirect
+	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/holiman/uint256 v1.3.2 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect

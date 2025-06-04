@@ -21,22 +21,50 @@ var (
 
 	v_Lock_KLine = new(sync.Mutex)
 
-	v_time_list = map[string]time.Duration{
-		"second_1":  Second,
-		"second_5":  5 * Second,
-		"second_8":  8 * Second,
-		"second_15": 15 * Second,
-		"minute_1":  60 * Second,
-		"minute_5":  60 * 5 * Second,
-		"minute_30": 60 * 30 * Second,
-		"hour_1":    60 * 60 * Second,
-		"hour_4":    4 * 60 * 60 * Second,
-		"day_1":     24 * 60 * 60 * Second,
-		"week_1":    7 * 24 * 60 * 60 * Second,
-		"month_1":   30 * 24 * 60 * 60 * Second,
-		"year_1":    365 * 24 * 60 * 60 * Second,
-	}
+	// v_time_list = map[string]time.Duration{
+	// 	"second_1":  Second,
+	// 	"second_5":  5 * Second,
+	// 	"second_8":  8 * Second,
+	// 	"second_15": 15 * Second,
+	// 	"minute_1":  60 * Second,
+	// 	"minute_5":  60 * 5 * Second,
+	// 	"minute_30": 60 * 30 * Second,
+	// 	"hour_1":    60 * 60 * Second,
+	// 	"hour_4":    4 * 60 * 60 * Second,
+	// 	"day_1":     24 * 60 * 60 * Second,
+	// 	"week_1":    7 * 24 * 60 * 60 * Second,
+	// 	"month_1":   30 * 24 * 60 * 60 * Second,
+	// 	"year_1":    365 * 24 * 60 * 60 * Second,
+	// }
 )
+
+func getTimeList() []string {
+	return []string{
+		"minute_1",
+		"minute_15",
+		"hour_4",
+		"minute_15",
+		"day_1",
+		"week_1",
+	}
+}
+
+func getTimePeroid(timePeroid string) time.Duration {
+	switch timePeroid {
+	case "minute_1":
+		return 60 * Second
+	case "minute_15":
+		return 60 * 15 * Second
+	case "hour_4":
+		return 4 * 60 * 60 * Second
+	case "day_1":
+		return 24 * 60 * 60 * Second
+	case "week_1":
+		return 7 * 24 * 60 * 60 * Second
+	default:
+		return Second
+	}
+}
 
 func klinesKey(tokenAddress, timePeroid string) string {
 	return fmt.Sprintf("%s-%v", tokenAddress, timePeroid)
@@ -74,7 +102,7 @@ func UpdateKLine(tokenAddress string, timePeroid time.Duration, price decimal.De
 			H:       price,
 			L:       price,
 			V:       volume,
-			T:       uint64(time.Now().Unix()),
+			T:       uint64(time.Now().UnixMilli()),
 			StartAt: timestamp,
 		}
 		SaveKLine(tokenAddress, timePeroid.String(), currentKLine)
@@ -92,12 +120,4 @@ func UpdateKLine(tokenAddress string, timePeroid time.Duration, price decimal.De
 		currentKLine.V = currentKLine.V.Add(volume)
 		return currentKLine, nil
 	}
-}
-
-func GetTimePeroid(strTimePeroid string) []string {
-	result := make([]string, 0)
-	for k, _ := range v_time_list {
-		result = append(result, k)
-	}
-	return result
 }

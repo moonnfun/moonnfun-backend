@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	C_Session_ID   = "frabius-session"
-	C_Session_User = "frabius-user"
+	C_Session_ID   = "web-session"
+	C_Session_User = "web-user"
 )
 
 var g_session *sessions.CookieStore

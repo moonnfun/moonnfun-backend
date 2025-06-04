@@ -13,22 +13,34 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func GetUser(address any) (*model.User, error) {
+func GetUser(address any, bCache bool) (*model.User, error) {
+	if bCache {
+		u := store.CacheGet(address, false, nil)
+		if u == nil {
+			return nil, fmt.Errorf("can not find user: %s", address)
+		}
+		return u.(*model.User), nil
+	}
 	return store.DBGet[model.User](model.C_User, bson.M{"address": address})
 }
 
 func UserLogin(address, signature, message string) (*model.User, error) {
-	if err := verifyWalletSignature(address, signature, message); err != nil {
-		return nil, err
-	}
+	// if err := verifyWalletSignature(address, signature, message); err != nil {
+	// 	return nil, err
+	// }
 
+	bSave := false
 	var user *model.User
-	if u, err := GetUser(address); err != nil {
+	if u, err := GetUser(address, false); err != nil {
 		user = &model.User{
 			Address: address,
 		}
+		bSave = true
+		user.DBID = primitive.NewObjectID()
+		user.CreatedAt = time.Now().UnixMilli()
 	} else {
 		user = u
 	}
@@ -38,6 +50,9 @@ func UserLogin(address, signature, message string) (*model.User, error) {
 		go SaveUser(val.(*model.User))
 		return true
 	})
+	if bSave {
+		SaveUser(user)
+	}
 	slog.Info("user login successed", "user", user)
 	return user, nil
 }
@@ -50,11 +65,26 @@ func RemoveUser(userID any) {
 }
 
 func SaveUser(user *model.User) error {
-	if err := store.DBSet(model.C_User, user, bson.M{"_id": user.DBID}); err != nil {
+	dbID := user.DBID
+	user.DBID = primitive.ObjectID{}
+	if err := store.DBSet(model.C_User, user, bson.M{"_id": dbID}); err != nil {
 		slog.Error("update user failed", "user", user, "error", err.Error())
 		return err
 	}
 	slog.Info("update user successed", "user", user)
+	return nil
+}
+
+func UpdateUser(address string) error {
+	if u, err := GetUser(address, true); err != nil {
+		return err
+	} else {
+		u.TotalTrading += 1
+		if err := store.DBSet(model.C_User, bson.M{"totaltrading": u.TotalTrading}, bson.M{"_id": u.DBID}); err != nil {
+			slog.Error("update user failed", "user", u, "error", err.Error())
+			return err
+		}
+	}
 	return nil
 }
 
