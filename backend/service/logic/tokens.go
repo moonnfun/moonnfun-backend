@@ -45,7 +45,7 @@ type CacheTokens struct {
 }
 
 func InitCacheTokens(bUpdate bool) error {
-	tokens, err := GetModelList[model.Token](bson.M{})
+	tokens, err := GetModelList[model.Token](model.C_Token, bson.M{})
 	if err != nil {
 		return err
 	}

@@ -70,7 +70,7 @@ func HttpToWebsocket(w http.ResponseWriter, r *http.Request) error {
 
 	// // balance update push
 	// listHotFunds := funds.GetListFunds(player.TonFunds.Hot)
-	// slog.Debug("before push funds update", "player", player.ID, "listHotFunds", listHotFunds)
+	// global.Debug("before push funds update", "player", player.ID, "listHotFunds", listHotFunds)
 	// go client.Push("", global.C_Msg_funds_update, listHotFunds, true)
 
 	// fundsnotify := funds.GetFundsNotify("Channel_CryptoBot", "Ton", "1", decimal.NewFromInt(1), false)
@@ -124,17 +124,17 @@ func WebsocketSubscribe(client *Client, id, address, topic string) error {
 	return nil
 }
 
-func WebsocketSend(fromID, toID, msgType string, payload any) error {
-	client, ok := clients.Load(toID)
+func WebsocketSend(clientID, tokenAddress, msgType string, payload any) error {
+	client, ok := clients.Load(clientID)
 	if ok && client != nil {
-		global.Debug("before send msg to client", "toID", toID, "msgType", msgType, "payload", payload)
-		client.(*Client).Push(fromID, msgType, payload, false)
+		global.Debug("before send msg to client", "clientID", clientID, "tokenAddress", tokenAddress, "msgType", msgType, "payload", payload)
+		client.(*Client).Push(tokenAddress, msgType, payload, false)
 		return nil
 	} else {
 		clients.Range(func(key, value any) bool {
 			if c, ok := value.(*Client); ok && c != nil && len(c.Topics) > 0 && strings.HasSuffix(msgType, c.Topics[0]) {
 				global.Debug("before broadcast msg to client", "toID", key, "msgType", msgType, "payload", payload)
-				value.(*Client).Push(fromID, msgType, payload, false)
+				value.(*Client).Push(tokenAddress, msgType, payload, false)
 			}
 			return true
 		})
@@ -149,7 +149,7 @@ func WebsocketSend(fromID, toID, msgType string, payload any) error {
 	// 		return fmt.Errorf("websocket subscribe failed with invalid id: %s, from: %s, err: %s", toID, fromID, err.Error())
 	// 	}
 	// } else {
-	// 	slog.Debug("before braodcast msg", "from", fromID, "msgType", msgType)
+	// 	global.Debug("before braodcast msg", "from", fromID, "msgType", msgType)
 	// 	return errors.New("unsupport broadcast")
 	// }
 }

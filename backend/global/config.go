@@ -23,6 +23,7 @@ type gconf struct {
 	NodePath string
 
 	Testnet           bool
+	LaunchMC          int
 	WebSessionTimeout int
 
 	// DB

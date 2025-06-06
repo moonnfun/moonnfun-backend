@@ -44,6 +44,20 @@ func Debug(args ...any) {
 	fmt.Printf("======debug-end======\n")
 }
 
+func DebugForce(args ...any) {
+	fmt.Printf("======debug-start======\n")
+	strLog := ""
+	for i, data := range args {
+		if i == len(args)-1 {
+			strLog += fmt.Sprintf("%+v", data)
+		} else {
+			strLog += fmt.Sprintf("%+v ", data)
+		}
+	}
+	fmt.Println(strLog)
+	fmt.Printf("======debug-end======\n")
+}
+
 // func Log(f func()) {
 // 	if Config.Mode == "dev" {
 // 		if f != nil {

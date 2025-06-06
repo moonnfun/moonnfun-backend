@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"meme3/global"
 	"meme3/server/web"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -32,6 +33,7 @@ type TokenCreated struct {
 	Creator     common.Address  `json:"creator"`
 	Name        string          `json:"name"`
 	Symbol      string          `json:"symbol"`
+	Time        time.Time       `json:"time"`
 	TotalSupply decimal.Decimal `json:"totalSupply"`
 }
 
@@ -121,7 +123,7 @@ func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
 
 	for _, log := range logs {
 		slog.Info("HandleTokenCreatedTx successed", slog.Any("log", log))
-		tokenCreated, err := parseTokenCreated(log)
+		tokenCreated, err := parseTokenCreated(log, tx.Time())
 		if err != nil {
 			slog.Error("get TokenCreated failed", "log", log, "error", err.Error())
 		} else {
@@ -132,7 +134,7 @@ func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
 	}
 }
 
-func parseTokenCreated(l types.Log) (*TokenCreated, error) {
+func parseTokenCreated(l types.Log, txTime time.Time) (*TokenCreated, error) {
 	// contractABI, err := abi.JSON(strings.NewReader(ABI))
 	// if err != nil {
 	// 	return nil, err
@@ -156,6 +158,7 @@ func parseTokenCreated(l types.Log) (*TokenCreated, error) {
 		slog.Error("get TokenCreated failed", "parseArgs", parseArgs, "error", err.Error())
 		return nil, err
 	}
+	tokenCreated.Time = txTime
 	slog.Info("unpack ok", slog.Any("tokenCreated", tokenCreated))
 
 	tokenCreated.TotalSupply = tokenCreated.TotalSupply.Div(decimal.NewFromInt(10).Pow(decimal.NewFromInt(18)))

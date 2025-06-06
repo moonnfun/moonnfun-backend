@@ -43,12 +43,12 @@ func initTrade(api *swag.API) {
 }
 
 func webTradeHot(w http.ResponseWriter, r *http.Request) {
-	tokenHolders, err := logic.GetHotTrades()
-	if err != nil {
-		WebResponseJson(w, r, ApiError(err.Error()), http.StatusOK)
-		return
-	}
-	WebResponseJson(w, r, ApiResponse(tokenHolders, true), http.StatusOK)
+	// tokenHolders, err := logic.GetHotTrades()
+	// if err != nil {
+	// 	WebResponseJson(w, r, ApiError(err.Error()), http.StatusOK)
+	// 	return
+	// }
+	// WebResponseJson(w, r, ApiResponse(tokenHolders, true), http.StatusOK)
 }
 
 func webTrades(w http.ResponseWriter, r *http.Request) {

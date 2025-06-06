@@ -46,10 +46,10 @@ func InitMongoDB(mConf *Mongo) error {
 			// startedCommands[evt.RequestID] = evt.Command
 		},
 		Succeeded: func(_ context.Context, evt *event.CommandSucceededEvent) {
-			// slog.Debug("InitMongoDB successed", "cmd", startedCommands[evt.RequestID].String())
+			// global.Debug("InitMongoDB successed", "cmd", startedCommands[evt.RequestID].String())
 		},
 		Failed: func(_ context.Context, evt *event.CommandFailedEvent) {
-			// slog.Debug("InitMongoDB failed", "cmd", startedCommands[evt.RequestID].String())
+			// global.Debug("InitMongoDB failed", "cmd", startedCommands[evt.RequestID].String())
 		},
 	}
 	opt = opt.SetMonitor(cmdMonitor)

@@ -7,7 +7,10 @@ package wss
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log/slog"
+	"meme3/global"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -21,7 +24,7 @@ const (
 
 const (
 	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
+	writeWait = 60 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
@@ -64,20 +67,20 @@ func NewClient(id string, conn *websocket.Conn) *Client {
 }
 
 // A -> B, system -> B
-func (c *Client) Push(fromID, msgType string, payload any, bInit bool) {
-	slog.Debug("client push", slog.Any("client", c))
+func (c *Client) Push(msgID, msgType string, payload any, bInit bool) {
+	global.Debug("client push", slog.Any("client", c))
 	if !bInit {
 		if !c.Active && msgType != C_Msg_connection_init {
 			return
 		}
 	}
 
-	if fromID == "" {
-		fromID = "system"
+	if msgID == "" {
+		msgID = fmt.Sprintf("system_%v", time.Now().UnixNano())
 	}
-	msg := WrapMsg(fromID, c.ID, msgType, payload)
+	msg := WrapMsg(c.ID, msgID, msgType, payload)
 	wbuf, _ := json.Marshal(msg)
-	slog.Debug("before send msg to client", "toID", c.ID, "msg", string(wbuf))
+	global.Debug("before send msg to client", "msgID", msgID, "msg", string(wbuf))
 	c.send <- wbuf
 }
 
@@ -110,7 +113,10 @@ func (c *Client) readPump() {
 			}
 			break
 		}
-		slog.Debug("Client.readPump receive msg successed", "msg", message)
+		if string(message) == "pong" {
+			continue
+		}
+		// global.Debug("Client.readPump receive msg successed", "msg", message)
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 		go MsgHandle(c, string(message))
 	}
@@ -131,7 +137,7 @@ func (c *Client) writePump() {
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			// c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
 				// The hub closed the channel.
 				slog.Warn("read message from client's send channel failed", "id", c.ID)
@@ -139,15 +145,18 @@ func (c *Client) writePump() {
 				c.Active = false
 				return
 			}
-
-			slog.Debug("Client.writePump receive msg successed", "msg", message)
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				slog.Error("generate client's writer failed", "msg", message)
-				return
+			global.DebugForce("before send msg to client", "c.Topics", c.Topics, "message", string(message))
+			if len(c.Topics) > 0 && strings.Contains(string(message), c.Topics[0]) {
+				// // global.Debug("Client.writePump receive msg successed", "msg", message)
+				// w, err := c.conn.NextWriter(websocket.TextMessage)
+				// if err != nil {
+				// 	slog.Error("generate client's writer failed", "msg", message)
+				// 	return
+				// }
+				// w.Write(message)
+				// // global.Debug("system send msg to websocket client successed", "msg", message)
+				c.conn.WriteMessage(websocket.TextMessage, message)
 			}
-			w.Write(message)
-			slog.Debug("system send msg to websocket client successed", "msg", message)
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {

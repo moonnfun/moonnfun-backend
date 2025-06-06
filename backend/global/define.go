@@ -15,6 +15,7 @@ const (
 
 	C_Msg_Price_Init   = "price_init_"
 	C_Msg_Price_Update = "price_update_"
+	C_Msg_Price_Append = "price_append_"
 
 	C_PushMode_Sync  = "PushMode_Sync"
 	C_PushMode_ASync = "PushMode_ASync"

@@ -2,7 +2,6 @@ package wss
 
 import (
 	"fmt"
-	"time"
 )
 
 const C_Msg_Chat = "chat"
@@ -19,11 +18,11 @@ type WMsg struct {
 	Payload any    `json:"payload"`
 }
 
-func WrapMsg(fromID, toID, t string, payload any) *WMsg {
+func WrapMsg(clientID, msgID, t string, payload any) *WMsg {
 	if payload == nil {
 		return &WMsg{Type: t} // fmt.Sprintf(`{"type": "%s"}`, t)
 	}
-	wmsg := &WMsg{ID: fmt.Sprintf("%s_%s_%v", fromID, toID, time.Now().UnixNano()), Type: t, Payload: payload}
+	wmsg := &WMsg{ID: fmt.Sprintf("%s_%s", clientID, msgID), Type: t, Payload: payload}
 	// wbuf, _ := json.Marshal(wmsg)
 	// return string(wbuf)
 	return wmsg

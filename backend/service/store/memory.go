@@ -2,7 +2,7 @@ package store
 
 import (
 	"fmt"
-	"log/slog"
+	"meme3/global"
 	"sync"
 	"time"
 )
@@ -59,7 +59,7 @@ func autoClearByTimer(key, val any, timeout time.Duration, callback func(val any
 	for {
 		select {
 		case <-time.After(timeout):
-			slog.Debug("before remove memory data", "key", key, "val", val, "timeout", timeout)
+			global.Debug("before remove memory data", "key", key, "val", val, "timeout", timeout)
 			CacheGet(key, true, callback)
 			return
 		}

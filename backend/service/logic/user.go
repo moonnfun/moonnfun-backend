@@ -28,9 +28,9 @@ func GetUser(address any, bCache bool) (*model.User, error) {
 }
 
 func UserLogin(address, signature, message string) (*model.User, error) {
-	// if err := verifyWalletSignature(address, signature, message); err != nil {
-	// 	return nil, err
-	// }
+	if err := verifyWalletSignature(address, signature, message); err != nil {
+		return nil, err
+	}
 
 	bSave := false
 	var user *model.User
