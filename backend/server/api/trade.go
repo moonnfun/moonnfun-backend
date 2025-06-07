@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/shopspring/decimal"
 	"github.com/zc2638/swag"
 	"github.com/zc2638/swag/endpoint"
 )
@@ -84,8 +85,10 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 				model.Trade
 				model.Token
 			}{}
+			tokenPrice := logic.GetTokenPrice(t.Address)
 			retTrade.Trade = *trade
 			retTrade.Token = *t
+			retTrade.Token.MarketCap = decimal.NewFromInt(retTrade.Token.Supply).Mul(tokenPrice)
 			ret = append(ret, retTrade)
 		}
 		WebResponseJson(w, r, ApiResponseList(ret, total), http.StatusOK)
