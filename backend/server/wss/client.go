@@ -157,12 +157,12 @@ func (c *Client) writePump() {
 				// // global.Debug("system send msg to websocket client successed", "msg", message)
 				c.conn.WriteMessage(websocket.TextMessage, message)
 			}
-		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				slog.Error("send msg to client with Ping failed", "error", err.Error())
-				return
-			}
+			// case <-ticker.C:
+			// 	c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			// 	if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			// 		slog.Error("send msg to client with Ping failed", "error", err.Error())
+			// 		return
+			// 	}
 		}
 	}
 }

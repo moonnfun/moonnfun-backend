@@ -76,15 +76,15 @@ func SaveUser(user *model.User) error {
 }
 
 func UpdateUser(address string) error {
-	if u, err := GetUser(address, true); err != nil {
-		return err
-	} else {
-		u.TotalTrading += 1
-		if err := store.DBSet(model.C_User, bson.M{"totaltrading": u.TotalTrading}, bson.M{"_id": u.DBID}); err != nil {
-			slog.Error("update user failed", "user", u, "error", err.Error())
-			return err
-		}
-	}
+	// if u, err := GetUser(address, true); err != nil {
+	// 	return err
+	// } else {
+	// 	u.TotalTrading += 1
+	// 	if err := store.DBSet(model.C_User, bson.M{"totaltrading": u.TotalTrading}, bson.M{"_id": u.DBID}); err != nil {
+	// 		slog.Error("update user failed", "user", u, "error", err.Error())
+	// 		return err
+	// 	}
+	// }
 	return nil
 }
 

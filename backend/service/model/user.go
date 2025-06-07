@@ -17,10 +17,12 @@ type User struct {
 
 	Address string `json:"address"`
 	Avatar  string `json:"avatar"`
+}
 
+type UserStatistics struct {
+	TotalCreated int `json:"totalCreated"`
+	TotalOwned   int `json:"totalOwned"`
 	TotalTrading int `json:"totalTrading"`
-
-	WebsocketClient any `json:"-" bson:"-"`
 }
 
 // func (p User) MarshalJSON() ([]byte, error) {
