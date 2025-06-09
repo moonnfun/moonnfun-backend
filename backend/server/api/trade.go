@@ -85,10 +85,10 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 				model.Trade
 				model.Token
 			}{}
-			tokenPrice := logic.GetTokenPrice(t.Address)
+			tokenPrice := logic.GetTokenPrice(t.Address, "")
 			retTrade.Trade = *trade
 			retTrade.Token = *t
-			retTrade.Token.MarketCap = decimal.NewFromInt(retTrade.Token.Supply).Mul(tokenPrice)
+			retTrade.Token.MarketCap = decimal.NewFromInt(retTrade.Token.Supply).Mul(tokenPrice.PriceUsd)
 			ret = append(ret, retTrade)
 		}
 		WebResponseJson(w, r, ApiResponseList(ret, total), http.StatusOK)
