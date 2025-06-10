@@ -61,9 +61,6 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 	address := WebParams(r).Get("address")
 	orderField := WebParams(r).Get("orderField")
 
-	if tag != "" {
-		tag = tags[tag]
-	}
 	if orderField != "" {
 		orderField = orderFields[orderField]
 	}

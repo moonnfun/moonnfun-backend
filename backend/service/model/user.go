@@ -20,9 +20,9 @@ type User struct {
 }
 
 type UserStatistics struct {
-	TotalCreated int `json:"totalCreated"`
-	TotalOwned   int `json:"totalOwned"`
-	TotalTrading int `json:"totalTrading"`
+	TotalCreated int64  `json:"totalCreated"`
+	TotalOwned   int64  `json:"totalOwned"`
+	TotalTrading string `json:"totalTrading"`
 }
 
 // func (p User) MarshalJSON() ([]byte, error) {
