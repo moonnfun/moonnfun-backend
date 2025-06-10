@@ -31,7 +31,7 @@ func Debug(args ...any) {
 	if Config.Log != "debug" {
 		return
 	}
-	fmt.Printf("======debug-start======\n")
+	fmt.Printf("\n======debug======\n")
 	strLog := ""
 	for i, data := range args {
 		if i == len(args)-1 {
@@ -41,11 +41,10 @@ func Debug(args ...any) {
 		}
 	}
 	fmt.Println(strLog)
-	fmt.Printf("======debug-end======\n")
 }
 
 func DebugForce(args ...any) {
-	fmt.Printf("======debug-start======\n")
+	fmt.Printf("\n======debug-start======\n")
 	strLog := ""
 	for i, data := range args {
 		if i == len(args)-1 {
