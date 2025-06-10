@@ -5,15 +5,15 @@
 package wss
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"log/slog"
 	"meme3/global"
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"github.com/coder/websocket"
+	"github.com/coder/websocket/wsjson"
 )
 
 const (
@@ -27,19 +27,34 @@ const (
 	writeWait = 60 * time.Second
 
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	pongWait = 10 * 60 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
+	pingPeriod = 5 * time.Second
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
 )
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
+/*
+init, send: {"type": "connection_init"}, response: {"type": "connection_ack"}
+*/
+type WMsg struct {
+	ID      string `json:"id"`
+	Type    string `json:"type"`
+	Wait    bool   `json:"-"`
+	Payload any    `json:"payload"`
+}
+
+func WrapMsg(clientID, msgID, t string, payload any) *WMsg {
+	if payload == nil {
+		return &WMsg{Type: t} // fmt.Sprintf(`{"type": "%s"}`, t)
+	}
+	wmsg := &WMsg{ID: fmt.Sprintf("%s_%s", clientID, msgID), Type: t, Payload: payload}
+	// wbuf, _ := json.Marshal(wmsg)
+	// return string(wbuf)
+	return wmsg
+}
 
 // Client is a middleman between the websocket connection and the hub.
 type Client struct {
@@ -50,19 +65,22 @@ type Client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
-	// Buffered channel of outbound messages.
-	send chan []byte
+	ctx    context.Context
+	cancel func()
+
+	// // Buffered channel of outbound messages.
+	// send chan []byte
 
 	Active bool
 
 	Topics []string
 }
 
-func NewClient(id string, conn *websocket.Conn) *Client {
-	client := &Client{ID: id, conn: conn, send: make(chan []byte, 256)}
+func NewClient(ctx context.Context, id string, conn *websocket.Conn, cancel func()) *Client {
+	client := &Client{ctx: ctx, ID: id, conn: conn, cancel: cancel}
 	client.Topics = make([]string, 0)
-	go client.readPump()
-	go client.writePump()
+	go client.waitRecv(ctx)
+	// go client.writePump()
 	return client
 }
 
@@ -79,90 +97,58 @@ func (c *Client) Push(msgID, msgType string, payload any, bInit bool) {
 		msgID = fmt.Sprintf("system_%v", time.Now().UnixNano())
 	}
 	msg := WrapMsg(c.ID, msgID, msgType, payload)
-	wbuf, _ := json.Marshal(msg)
-	global.Debug("before send msg to client", "msgID", msgID, "msg", string(wbuf))
-	c.send <- wbuf
+
+	// wbuf, _ := json.Marshal(msg)
+	// global.Debug("before send msg to client", "msgID", msgID, "msg", string(wbuf))
+	// c.send <- wbuf
+
+	global.Debug("before send msg to client", "msg", msg)
+	if err := c.sendMessage(c.ctx, msg); err != nil {
+		slog.Error("send message failed", "msg", msg, "error", err.Error())
+	}
 }
 
 func (c *Client) Close() {
 	if c.conn != nil {
-		c.conn.Close()
+		c.conn.Close(websocket.StatusInternalError, "internal error")
+		c.conn = nil
 	}
 }
 
-// readPump pumps messages from the websocket connection to the hub.
-//
-// The application runs readPump in a per-connection goroutine. The application
-// ensures that there is at most one reader on a connection by executing all
-// reads from this goroutine.
-func (c *Client) readPump() {
-	defer func() {
-		// c.hub.unregister <- c
-		c.Close()
-	}()
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+func (c *Client) waitRecv(ctx context.Context) {
+	defer c.Close()
 	for {
-		_, message, err := c.conn.ReadMessage()
+		_, msgData, err := c.conn.Read(ctx)
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				slog.Error("read client message failed with UnexpectedClosedError", "error", err.Error())
-			} else {
-				slog.Error("read client message failed with ClosedError", "error", err.Error())
-			}
-			break
+			slog.Error("read client message failed with UnexpectedClosedError", "error", err.Error())
+			return
 		}
-		if string(message) == "pong" {
+		if string(msgData) == "pong" {
+			go c.sendPing(ctx)
 			continue
 		}
-		// global.Debug("Client.readPump receive msg successed", "msg", message)
-		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
-		go MsgHandle(c, string(message))
+		go MsgHandle(c, msgData)
 	}
 }
 
-// writePump pumps messages from the hub to the websocket connection.
-//
-// A goroutine running writePump is started for each connection. The
-// application ensures that there is at most one writer to a connection by
-// executing all writes from this goroutine.
-func (c *Client) writePump() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		// c.conn.Close()
-		c.Close()
-	}()
-	for {
-		select {
-		case message, ok := <-c.send:
-			// c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				// The hub closed the channel.
-				slog.Warn("read message from client's send channel failed", "id", c.ID)
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				c.Active = false
-				return
+func (c *Client) sendPing(ctx context.Context) {
+	<-time.After(time.Duration(pingPeriod) * time.Second)
+	c.conn.Write(ctx, websocket.MessageText, []byte("ping"))
+	// if err := c.conn.Ping(ctx); err != nil {
+	// 	slog.Error("send ping failed", "error", err.Error())
+	// }
+}
+
+func (c *Client) sendMessage(ctx context.Context, wmsg *WMsg) error {
+	global.DebugForce("before send msg to client", "c.Topics", c.Topics, "message", wmsg)
+	if c.conn != nil {
+		if len(c.Topics) > 0 && strings.Contains(wmsg.Type, c.Topics[0]) {
+			if err := wsjson.Write(ctx, c.conn, wmsg); err != nil {
+				return err
 			}
-			global.DebugForce("before send msg to client", "c.Topics", c.Topics, "message", string(message))
-			if len(c.Topics) > 0 && strings.Contains(string(message), c.Topics[0]) {
-				// // global.Debug("Client.writePump receive msg successed", "msg", message)
-				// w, err := c.conn.NextWriter(websocket.TextMessage)
-				// if err != nil {
-				// 	slog.Error("generate client's writer failed", "msg", message)
-				// 	return
-				// }
-				// w.Write(message)
-				// // global.Debug("system send msg to websocket client successed", "msg", message)
-				c.conn.WriteMessage(websocket.TextMessage, message)
-			}
-			// case <-ticker.C:
-			// 	c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			// 	if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-			// 		slog.Error("send msg to client with Ping failed", "error", err.Error())
-			// 		return
-			// 	}
 		}
+	} else {
+		return fmt.Errorf("invalid connection: %s", c.ID)
 	}
+	return nil
 }
