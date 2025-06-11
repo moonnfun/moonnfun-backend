@@ -82,7 +82,7 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 				model.Trade
 				model.Token
 			}{}
-			tokenPrice := logic.GetTokenPrice(t.Address, "")
+			tokenPrice := logic.GetTokenPrice(t.Address, t.Launch)
 			retTrade.Trade = *trade
 			retTrade.Token = *t
 			retTrade.Token.MarketCap = decimal.NewFromInt(retTrade.Token.Supply).Mul(tokenPrice.PriceUsd)
