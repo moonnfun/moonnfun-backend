@@ -30,7 +30,7 @@ const (
 	pongWait = 10 * 60 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = 5 * time.Second
+	pingPeriod = 15 * time.Second
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
@@ -117,26 +117,38 @@ func (c *Client) Close() {
 
 func (c *Client) waitRecv(ctx context.Context) {
 	defer c.Close()
+	ticker := time.NewTicker(time.Second)
 	for {
-		_, msgData, err := c.conn.Read(ctx)
-		if err != nil {
-			slog.Error("read client message failed with UnexpectedClosedError", "error", err.Error())
+		select {
+		case <-ticker.C:
+			if c.conn == nil {
+				return
+			}
+			_, msgData, _ := c.conn.Read(ctx)
+			// if err != nil {
+			// 	slog.Error("read client message failed with UnexpectedClosedError", "error", err.Error())
+			// 	return
+			// }
+			if string(msgData) == "o" {
+				go c.SendPing(ctx)
+				continue
+			}
+			go MsgHandle(c, msgData)
+		case <-ctx.Done():
+			slog.Error("read client message failed with UnexpectedClosedError", "error", "timeout")
 			return
 		}
-		if string(msgData) == "pong" {
-			go c.sendPing(ctx)
-			continue
-		}
-		go MsgHandle(c, msgData)
 	}
 }
 
-func (c *Client) sendPing(ctx context.Context) {
-	<-time.After(time.Duration(pingPeriod) * time.Second)
-	c.conn.Write(ctx, websocket.MessageText, []byte("ping"))
-	// if err := c.conn.Ping(ctx); err != nil {
-	// 	slog.Error("send ping failed", "error", err.Error())
-	// }
+func (c *Client) SendPing(ctx context.Context) {
+	<-time.After(time.Duration(pingPeriod))
+	if c.conn != nil {
+		c.conn.Write(ctx, websocket.MessageText, []byte("p"))
+	}
+	if err := c.conn.Ping(ctx); err != nil {
+		slog.Error("send ping failed", "error", err.Error())
+	}
 }
 
 func (c *Client) sendMessage(ctx context.Context, wmsg *WMsg) error {

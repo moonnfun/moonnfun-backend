@@ -48,13 +48,15 @@ func MsgHandle(client *Client, msg []byte) (bHandle bool, retErr error) {
 	if err := json.Unmarshal(msg, wmsg); err != nil {
 		return false, err
 	}
-	slog.Info("receive websocket msg successed", "msg", wmsg)
 
 	if wmsg.Type == C_Msg_connection_init {
 		client.Active = true
 		client.Push("", C_Msg_connection_ack, nil, false)
+		client.SendPing(context.Background())
+		slog.Info("receive websocket msg successed", "msg", wmsg)
 	} else if wmsg.Type == C_Msg_topic_subscribe {
 		// format: address-second_1
+		slog.Info("receive websocket msg successed", "msg", wmsg)
 		subMsgs := strings.Split(fmt.Sprintf("%v", wmsg.Payload), "-")
 		WebsocketSubscribe(client, wmsg.ID, subMsgs[0], subMsgs[1])
 	} else {

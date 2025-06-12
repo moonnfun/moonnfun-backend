@@ -23,3 +23,8 @@ type Statistics struct {
 	TotalOwned   int `json:"totalOwned"`
 	TotalTrading int `json:"totalTrading"`
 }
+
+type WebTrade struct {
+	Trade
+	Token
+}

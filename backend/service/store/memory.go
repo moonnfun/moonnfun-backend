@@ -14,8 +14,8 @@ func Cache() *sync.Map {
 	return &vCache
 }
 
-func CacheListPageKey(key any, limit, offset int) string {
-	return fmt.Sprintf("%v-%v-%v", key, limit, offset)
+func CacheListPageKey(key any, total int64, limit, offset int) string {
+	return fmt.Sprintf("%v-%v-%v-%v", key, total, limit, offset)
 }
 
 func CacheSet(key, val any, bForce bool) error {

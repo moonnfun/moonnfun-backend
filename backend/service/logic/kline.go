@@ -135,6 +135,7 @@ func UpdateKLine(tokenAddress string, timePeroid string, price decimal.Decimal, 
 		return false, currentKLine, nil
 	} else {
 		currentKLine := kline.(model.TokenOHLCV)
+		global.Debug("update1: ", kline)
 		// 更新当前K线
 		if price.GreaterThan(currentKLine.H) {
 			currentKLine.H = price
@@ -145,7 +146,7 @@ func UpdateKLine(tokenAddress string, timePeroid string, price decimal.Decimal, 
 		currentKLine.C = price
 		// currentKLine.T = uint64(timestamp.UnixMilli())
 		currentKLine.V = currentKLine.V.Add(volume)
-		global.Debug("update: ", currentKLine)
+		global.Debug("update2: ", currentKLine)
 		SaveKLine(tokenAddress, timePeroid, currentKLine)
 		return true, currentKLine, nil
 	}

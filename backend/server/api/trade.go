@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/shopspring/decimal"
 	"github.com/zc2638/swag"
 	"github.com/zc2638/swag/endpoint"
 )
@@ -61,10 +60,20 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 	address := WebParams(r).Get("address")
 	orderField := WebParams(r).Get("orderField")
 
+	// return cache
+	if address == "" && limit == "10" {
+		trades, err := logic.GetListFromCache(logic.GetCacheList().Trades)
+		if err != nil {
+			WebResponseJson(w, r, ApiError(err.Error()), http.StatusOK)
+			return
+		}
+		WebResponseJson(w, r, ApiResponseList(trades, len(trades)), http.StatusOK)
+		return
+	}
+
 	if orderField != "" {
 		orderField = orderFields[orderField]
 	}
-
 	iLimit, _ := strconv.Atoi(limit)
 	iOffset, _ := strconv.Atoi(offset)
 
@@ -73,23 +82,5 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 		WebResponseJson(w, r, ApiError(err.Error()), http.StatusOK)
 		return
 	}
-
-	if iLimit == 10 {
-		ret := make([]any, 0)
-		for _, trade := range tradeList {
-			t, _ := logic.GetToken(trade.Address)
-			retTrade := struct {
-				model.Trade
-				model.Token
-			}{}
-			tokenPrice := logic.GetTokenPrice(t.Address, t.Launch)
-			retTrade.Trade = *trade
-			retTrade.Token = *t
-			retTrade.Token.MarketCap = decimal.NewFromInt(retTrade.Token.Supply).Mul(tokenPrice.PriceUsd)
-			ret = append(ret, retTrade)
-		}
-		WebResponseJson(w, r, ApiResponseList(ret, total), http.StatusOK)
-	} else {
-		WebResponseJson(w, r, ApiResponseList(tradeList, total), http.StatusOK)
-	}
+	WebResponseJson(w, r, ApiResponseList(tradeList, total), http.StatusOK)
 }
