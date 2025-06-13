@@ -62,11 +62,10 @@ type Client struct {
 
 	PushCh chan struct{}
 
+	TimeoutCh <-chan time.Time
+
 	// The websocket connection.
 	conn *websocket.Conn
-
-	ctx    context.Context
-	cancel func()
 
 	// // Buffered channel of outbound messages.
 	// send chan []byte
@@ -76,10 +75,10 @@ type Client struct {
 	Topics []string
 }
 
-func NewClient(ctx context.Context, id string, conn *websocket.Conn, cancel func()) *Client {
-	client := &Client{ctx: ctx, ID: id, conn: conn, cancel: cancel}
+func NewClient(id string, conn *websocket.Conn) *Client {
+	client := &Client{ID: id, conn: conn, TimeoutCh: time.After(pongWait)}
 	client.Topics = make([]string, 0)
-	go client.waitRecv(ctx)
+	go client.waitRecv(context.Background())
 	// go client.writePump()
 	return client
 }
@@ -103,7 +102,7 @@ func (c *Client) Push(msgID, msgType string, payload any, bInit bool) {
 	// c.send <- wbuf
 
 	global.Debug("before send msg to client", "msg", msg)
-	if err := c.sendMessage(c.ctx, msg); err != nil {
+	if err := c.sendMessage(context.Background(), msg); err != nil {
 		slog.Error("send message failed", "msg", msg, "error", err.Error())
 	}
 }
@@ -122,6 +121,7 @@ func (c *Client) waitRecv(ctx context.Context) {
 		select {
 		case <-ticker.C:
 			if c.conn == nil {
+				ticker.Stop()
 				return
 			}
 			_, msgData, _ := c.conn.Read(ctx)
@@ -130,12 +130,14 @@ func (c *Client) waitRecv(ctx context.Context) {
 			// 	return
 			// }
 			if string(msgData) == "o" {
+				c.TimeoutCh = time.After(pongWait)
 				go c.SendPing(ctx)
 				continue
 			}
 			go MsgHandle(c, msgData)
-		case <-ctx.Done():
+		case <-c.TimeoutCh:
 			slog.Error("read client message failed with UnexpectedClosedError", "error", "timeout")
+			ticker.Stop()
 			return
 		}
 	}
@@ -145,9 +147,9 @@ func (c *Client) SendPing(ctx context.Context) {
 	<-time.After(time.Duration(pingPeriod))
 	if c.conn != nil {
 		c.conn.Write(ctx, websocket.MessageText, []byte("p"))
-	}
-	if err := c.conn.Ping(ctx); err != nil {
-		slog.Error("send ping failed", "error", err.Error())
+		// if err := c.conn.Ping(ctx); err != nil {
+		// 	slog.Error("send ping failed", "error", err.Error())
+		// }
 	}
 }
 

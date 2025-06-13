@@ -28,7 +28,6 @@ func HttpToWebsocket(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), pongWait)
 
 	if c, ok := clients.Load(r.RemoteAddr); ok && c != nil {
 		slog.Info("Before reset websocket client", "websocketClient", c)
@@ -37,7 +36,7 @@ func HttpToWebsocket(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	// add client
-	client := NewClient(ctx, r.RemoteAddr, conn, cancel)
+	client := NewClient(r.RemoteAddr, conn)
 	clients.Store(r.RemoteAddr, client)
 	slog.Info("Add websocket client", "address", r.RemoteAddr)
 	return nil
