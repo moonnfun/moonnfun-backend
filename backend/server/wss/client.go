@@ -78,8 +78,12 @@ type Client struct {
 func NewClient(id string, conn *websocket.Conn) *Client {
 	client := &Client{ID: id, conn: conn, TimeoutCh: time.After(pongWait)}
 	client.Topics = make([]string, 0)
+
+	// // wait read
 	go client.waitRecv(context.Background())
-	// go client.writePump()
+
+	// conn.CloseRead(context.Background())
+
 	return client
 }
 
@@ -124,11 +128,12 @@ func (c *Client) waitRecv(ctx context.Context) {
 				ticker.Stop()
 				return
 			}
-			_, msgData, _ := c.conn.Read(ctx)
-			// if err != nil {
-			// 	slog.Error("read client message failed with UnexpectedClosedError", "error", err.Error())
-			// 	return
-			// }
+			_, msgData, err := c.conn.Read(ctx)
+			if err != nil {
+				// slog.Error("read client message failed with UnexpectedClosedError", "error", err.Error())
+				// return
+				continue
+			}
 			if string(msgData) == "o" {
 				c.TimeoutCh = time.After(pongWait)
 				go c.SendPing(ctx)

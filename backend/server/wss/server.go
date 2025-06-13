@@ -70,7 +70,12 @@ func WebsocketSubscribe(client *Client, id, address, topic string) error {
 	}
 
 	if client == nil {
-		return fmt.Errorf("websocket subscribe failed with invalid id: %s, topic: %s", id, topic)
+		if c, _ := clients.Load(id); c == nil {
+			return fmt.Errorf("websocket subscribe failed with invalid id: %s, topic: %s", id, topic)
+		} else {
+			client = c.(*Client)
+			client.Active = true
+		}
 	}
 	slog.Info("before subscribe", "id", id, "topic", topic, "address", address)
 	if len(client.Topics) == 1 {
