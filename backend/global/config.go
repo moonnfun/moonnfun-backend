@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	c_tgsession_timeout  = 86400
-	c_websession_timeout = 3600
+	C_websession_timeout = 3600
 )
 
 type gconf struct {
@@ -44,8 +43,6 @@ func Init(confPath string) error {
 	if err != nil {
 		return err
 	}
-
-	Config.WebSessionTimeout = c_websession_timeout
 	cbuf, _ := json.MarshalIndent(Config, "", "	")
 
 	fmt.Println(string(cbuf))
