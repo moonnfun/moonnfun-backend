@@ -25,6 +25,12 @@ type UserStatistics struct {
 	TotalTrading string `json:"totalTrading"`
 }
 
+type UserTokenHolder struct {
+	TokenAddress string `json:"address"`
+	TokenHolder
+	Token
+}
+
 // func (p User) MarshalJSON() ([]byte, error) {
 // 	ret := &struct {
 // 		Address string `json:"address"`
