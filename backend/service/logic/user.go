@@ -36,13 +36,20 @@ func UserLogin(address, signature, message string) (*model.User, error) {
 	var user *model.User
 	if u, err := GetUser(address, false); err != nil {
 		user = &model.User{
-			Address: address,
+			Address:    address,
+			RefferalID: store.NewId(),
 		}
 		bSave = true
 		user.DBID = primitive.NewObjectID()
 		user.CreatedAt = time.Now().UnixMilli()
+		user.RefferalUrl = fmt.Sprintf("%s?refer=%s", global.Config.HostURL, user.RefferalID)
 	} else {
 		user = u
+		if user.RefferalID == "" {
+			bSave = true
+			user.RefferalID = store.NewId()
+			user.RefferalUrl = fmt.Sprintf("%s?refer=%s", global.Config.HostURL, user.RefferalID)
+		}
 	}
 
 	// session

@@ -22,7 +22,9 @@ type gconf struct {
 	NodePath string
 
 	Testnet           bool
-	LaunchMC          int
+	LaunchMC          float64
+	StartPrice        float64
+	ContractAddress   string
 	WebSessionTimeout int
 
 	// DB

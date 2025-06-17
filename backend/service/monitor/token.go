@@ -89,10 +89,7 @@ type TokenCreated struct {
 // }
 
 func GetFactoryAddress() string {
-	address := C_factory_address_main
-	if global.Config.Testnet {
-		address = C_factory_address_test
-	}
+	address := global.Config.ContractAddress
 	return address
 }
 

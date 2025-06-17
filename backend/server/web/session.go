@@ -4,6 +4,8 @@ import (
 	"errors"
 	"net/http"
 
+	"meme3/global"
+
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 )
@@ -17,7 +19,7 @@ var g_session *sessions.CookieStore
 
 func InitSession() error {
 	g_session = sessions.NewCookieStore(securecookie.GenerateRandomKey(32), securecookie.GenerateRandomKey(32))
-	g_session.MaxAge(86400)
+	g_session.MaxAge(global.Config.WebSessionTimeout)
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 )
 
 const C_User = "user"
+const C_Referral = "referral"
 
 type BaseModel struct {
 	DBID      primitive.ObjectID `bson:"_id,omitempty" json:"gid"`
@@ -15,8 +16,17 @@ type BaseModel struct {
 type User struct {
 	BaseModel `bson:",inline"`
 
+	Address     string `json:"address"`
+	Avatar      string `json:"avatar"`
+	RefferalID  string `json:"refferalID"`
+	RefferalUrl string `json:"refferalUrl"`
+}
+
+type Refferal struct {
+	BaseModel `bson:",inline"`
+
+	Wallet  string `json:"wallet"`
 	Address string `json:"address"`
-	Avatar  string `json:"avatar"`
 }
 
 type UserStatistics struct {
