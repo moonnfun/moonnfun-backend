@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	C_websession_timeout = 3600
+	C_websession_timeout = 3 * 24 * 3600
 )
 
 type gconf struct {

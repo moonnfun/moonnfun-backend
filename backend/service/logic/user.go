@@ -27,6 +27,10 @@ func GetUser(address any, bCache bool) (*model.User, error) {
 	return store.DBGet[model.User](model.C_User, bson.M{"address": address})
 }
 
+func GetUserByRefer(refer string) (*model.User, error) {
+	return store.DBGet[model.User](model.C_User, bson.M{"refferalid": refer})
+}
+
 func UserLogin(address, signature, message string) (*model.User, error) {
 	if err := verifyWalletSignature(address, signature, message); err != nil {
 		return nil, err
@@ -79,6 +83,21 @@ func SaveUser(user *model.User) error {
 		return err
 	}
 	slog.Info("update user successed", "user", user)
+	return nil
+}
+
+func SaveRefer(fromUser, referUser *model.User) error {
+	referral := &model.Refferal{
+		Wallet:  fromUser.Address,
+		Address: referUser.Address,
+	}
+	referral.DBID = primitive.ObjectID{}
+	referral.CreatedAt = time.Now().UnixMilli()
+	if err := store.DBSet(model.C_Referral, referral, bson.M{"waller": fromUser.Address, "address": referUser.Address}); err != nil {
+		slog.Error("save refer failed", "refer", referral, "fromUser", fromUser, "referUser", referUser, "error", err.Error())
+		return err
+	}
+	slog.Info("save refer successed", "user", referral)
 	return nil
 }
 
