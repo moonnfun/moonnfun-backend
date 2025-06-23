@@ -1,6 +1,7 @@
 package api
 
 import (
+	"meme3/global"
 	"meme3/service/logic"
 	"meme3/service/model"
 	"net/http"
@@ -11,6 +12,17 @@ import (
 )
 
 func initTrade(api *swag.API) {
+	api.AddEndpoint(
+		endpoint.New(
+			http.MethodGet, "/trade/contract",
+			endpoint.Tags("Trade"),
+			endpoint.Handler(webTradeContract),
+			endpoint.Summary("contract address"),
+			endpoint.Description("get contract"),
+			endpoint.Response(http.StatusOK, "successed", endpoint.SchemaResponseOption("address")),
+			// endpoint.Security("petstore_auth", "read:pets", "write:pets"),
+		),
+	)
 	api.AddEndpoint(
 		endpoint.New(
 			http.MethodGet, "/trade/hot",
@@ -40,6 +52,10 @@ func initTrade(api *swag.API) {
 			// endpoint.Security("petstore_auth", "read:pets", "write:pets"),
 		),
 	)
+}
+
+func webTradeContract(w http.ResponseWriter, r *http.Request) {
+	WebResponseJson(w, r, ApiResponse(global.Config.ContractAddress, true), http.StatusOK)
 }
 
 func webTradeHot(w http.ResponseWriter, r *http.Request) {
