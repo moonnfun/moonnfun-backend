@@ -18,6 +18,7 @@ type User struct {
 
 	Address     string `json:"address"`
 	Avatar      string `json:"avatar"`
+	FromID      string `json:"fromID"`
 	RefferalID  string `json:"refferalID"`
 	RefferalUrl string `json:"refferalUrl"`
 }

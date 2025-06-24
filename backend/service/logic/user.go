@@ -31,7 +31,7 @@ func GetUserByRefer(refer string) (*model.User, error) {
 	return store.DBGet[model.User](model.C_User, bson.M{"refferalid": refer})
 }
 
-func UserLogin(address, signature, message string) (*model.User, error) {
+func UserLogin(address, signature, message, refer string) (*model.User, error) {
 	if err := verifyWalletSignature(address, signature, message); err != nil {
 		return nil, err
 	}
@@ -54,6 +54,17 @@ func UserLogin(address, signature, message string) (*model.User, error) {
 			user.RefferalID = store.NewId()
 			user.RefferalUrl = fmt.Sprintf("%s?refer=%s", global.Config.HostURL, user.RefferalID)
 		}
+	}
+
+	if refer != "" && user.FromID == "" {
+		fromUser, err := GetUserByRefer(refer)
+		if err != nil {
+			return nil, err
+		}
+		if err := SaveRefer(fromUser, user); err != nil {
+			return nil, err
+		}
+		user.FromID = fromUser.RefferalID
 	}
 
 	// session
