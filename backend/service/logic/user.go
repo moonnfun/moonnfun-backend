@@ -17,13 +17,13 @@ import (
 )
 
 func GetUser(address any, bCache bool) (*model.User, error) {
-	if bCache {
-		u := store.CacheGet(address, false, nil)
-		if u == nil {
-			return nil, fmt.Errorf("can not find user: %s", address)
-		}
-		return u.(*model.User), nil
-	}
+	// if bCache {
+	// 	u := store.CacheGet(address, false, nil)
+	// 	if u == nil {
+	// 		return nil, fmt.Errorf("can not find user: %s", address)
+	// 	}
+	// 	return u.(*model.User), nil
+	// }
 	return store.DBGet[model.User](model.C_User, bson.M{"address": address})
 }
 
@@ -37,6 +37,7 @@ func UserLogin(address, signature, message, refer string) (*model.User, error) {
 	}
 
 	bSave := false
+	bUpdate := false
 	var user *model.User
 	if u, err := GetUser(address, false); err != nil {
 		user = &model.User{
@@ -51,44 +52,55 @@ func UserLogin(address, signature, message, refer string) (*model.User, error) {
 		user = u
 		if user.RefferalID == "" {
 			bSave = true
+			bUpdate = true
 			user.RefferalID = store.NewId()
 			user.RefferalUrl = fmt.Sprintf("%s?refer=%s", global.Config.HostURL, user.RefferalID)
 		}
 	}
 
-	if refer != "" && user.FromID == "" {
-		fromUser, err := GetUserByRefer(refer)
-		if err != nil {
-			return nil, err
-		}
-		if err := SaveRefer(fromUser, user); err != nil {
-			return nil, err
-		}
-		user.FromID = fromUser.RefferalID
+	if bSave {
+		SaveUser(refer, user, bUpdate)
 	}
 
-	// session
-	store.CacheSetByTime(user.Address, user, true, time.Duration(global.Config.WebSessionTimeout)*time.Second, func(val any) bool {
-		go SaveUser(val.(*model.User))
-		return true
-	})
-	if bSave {
-		SaveUser(user)
-	}
+	// // session
+	// store.CacheSetByTime(user.Address, user, true, time.Duration(global.Config.WebSessionTimeout)*time.Second, func(val any) bool {
+	// 	// go SaveUserToDB(val.(*model.User), true)
+	// 	return true
+	// })
+
 	slog.Info("user login successed", "user", user)
 	return user, nil
 }
 
-func RemoveUser(userID any) {
-	store.CacheGet(userID, true, func(v any) bool {
-		go SaveUser(v.(*model.User))
-		return true
-	})
+func SaveUser(refer string, user *model.User, bUpdate bool) error {
+	global.Debug("before save user", "refer", refer, "user", user)
+	if refer != "" && user.FromID == "" && refer != user.RefferalID {
+		fromUser, err := GetUserByRefer(refer)
+		if err != nil {
+			return err
+		}
+		if err := SaveRefer(fromUser, user); err != nil {
+			return err
+		}
+		user.FromID = fromUser.RefferalID
+	} else {
+		slog.Warn("can not bind user again and again", "refer", refer)
+	}
+	return SaveUserToDB(user, bUpdate)
 }
 
-func SaveUser(user *model.User) error {
+func RemoveUser(userID any) {
+	// store.CacheGet(userID, true, func(v any) bool {
+	// 	// go SaveUserToDB(v.(*model.User), true)
+	// 	return true
+	// })
+}
+
+func SaveUserToDB(user *model.User, bUpdate bool) error {
 	dbID := user.DBID
-	user.DBID = primitive.ObjectID{}
+	if bUpdate {
+		user.DBID = primitive.ObjectID{}
+	}
 	if err := store.DBSet(model.C_User, user, bson.M{"_id": dbID}); err != nil {
 		slog.Error("update user failed", "user", user, "error", err.Error())
 		return err
@@ -102,13 +114,14 @@ func SaveRefer(fromUser, referUser *model.User) error {
 		Wallet:  fromUser.Address,
 		Address: referUser.Address,
 	}
-	referral.DBID = primitive.ObjectID{}
+	referral.DBID = primitive.NewObjectID()
 	referral.CreatedAt = time.Now().UnixMilli()
 	if err := store.DBSet(model.C_Referral, referral, bson.M{"wallet": fromUser.Address, "address": referUser.Address}); err != nil {
 		slog.Error("save refer failed", "refer", referral, "fromUser", fromUser, "referUser", referUser, "error", err.Error())
-		return err
+		// return err
+	} else {
+		slog.Info("save refer successed", "user", referral)
 	}
-	slog.Info("save refer successed", "user", referral)
 	return nil
 }
 
