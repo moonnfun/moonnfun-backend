@@ -74,7 +74,7 @@ func Run(ctx context.Context, port int, router *httprouter.Router, allowCredenti
 	n := negroni.New()
 	n.Use(newCors(allowCredentials, allowOrigins...))
 	n.UseFunc(newGzip)
-	// n.Use(newRateLimite())
+	n.Use(newRateLimite())
 	n.UseFunc(newAPILog)
 	// n.UseFunc(newAuth)
 

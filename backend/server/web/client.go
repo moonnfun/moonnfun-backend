@@ -34,3 +34,17 @@ func HttpPost(url string, form url.Values) ([]byte, error) {
 	}
 	return raw, nil
 }
+
+func HttpPostJson(url string, body io.Reader) ([]byte, error) {
+	resp, err := http.Post(url, "application/json", body)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	raw, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return raw, nil
+}
