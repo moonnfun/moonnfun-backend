@@ -122,7 +122,7 @@ func UpdateKLine(tokenAddress string, timePeroid string, price decimal.Decimal, 
 			currentKLine.H = currentKLine.O
 			currentKLine.L = currentKLine.O
 			currentKLine.C = price
-			currentKLine.V = kline.(model.TokenOHLCV).V.Add(volume)
+			currentKLine.V = volume
 			if price.GreaterThan(currentKLine.H) {
 				currentKLine.H = price
 			}
