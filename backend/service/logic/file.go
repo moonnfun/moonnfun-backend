@@ -1,0 +1,38 @@
+package logic
+
+import (
+	"os"
+	"path/filepath"
+)
+
+var Dir string
+var ImageDir string
+
+func InitFileSys() error {
+	directory, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	Dir = directory
+
+	directory = filepath.Join(directory, "dist", "images")
+	if _, err := os.Stat(directory); err != nil {
+		if derr := os.Mkdir(directory, os.ModePerm); derr != nil {
+			return err
+		}
+	}
+	ImageDir = directory
+	return nil
+}
+
+func SaveImage(fileName string, fileBuf []byte) error {
+	fullPath := filepath.Join(ImageDir, fileName)
+	f, err := os.Create(fullPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(fileBuf)
+	return err
+}
