@@ -78,7 +78,7 @@ func webTrades(w http.ResponseWriter, r *http.Request) {
 
 	// return cache
 	if address == "" && limit == "10" {
-		trades, err := logic.GetListTradesFromCache[model.WebTrade](logic.GetCacheList().Trades)
+		trades, err := logic.GetListTradesFromCache()
 		if err != nil {
 			WebResponseJson(w, r, ApiError(err.Error()), http.StatusOK)
 			return
