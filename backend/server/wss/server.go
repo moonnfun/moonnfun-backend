@@ -78,15 +78,8 @@ func WebsocketSubscribe(client *Client, id, address, topic string) error {
 		}
 	}
 	slog.Info("before subscribe", "id", id, "topic", topic, "address", address)
-	if len(client.Topics) == 1 {
-		if client.PushCh != nil {
-			close(client.PushCh)
-			client.PushCh = nil
-		}
-		client.Topics[0] = topic
-	} else {
-		client.Topics = append(client.Topics, topic)
-	}
+	client.WaitInit = true
+	client.Topic = topic
 
 	if global.WebsocketSubscribe != nil {
 		client.PushCh = global.WebsocketSubscribe(client.ID, address, topic)
@@ -102,7 +95,7 @@ func WebsocketSend(clientID, tokenAddress, msgType string, payload any) error {
 		return nil
 	} else {
 		clients.Range(func(key, value any) bool {
-			if c, ok := value.(*Client); ok && c != nil && len(c.Topics) > 0 && strings.HasSuffix(msgType, c.Topics[0]) {
+			if c, ok := value.(*Client); ok && c != nil && c.Topic != "" && strings.HasSuffix(msgType, c.Topic) {
 				global.Debug("before broadcast msg to client", "toID", key, "msgType", msgType, "payload", payload)
 				go value.(*Client).Push(tokenAddress, msgType, payload, false)
 			}

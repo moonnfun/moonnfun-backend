@@ -72,12 +72,12 @@ type Client struct {
 
 	Active bool
 
-	Topics []string
+	Topic    string
+	WaitInit bool
 }
 
 func NewClient(id string, conn *websocket.Conn) *Client {
 	client := &Client{ID: id, conn: conn, TimeoutCh: time.After(pongWait)}
-	client.Topics = make([]string, 0)
 
 	// // wait read
 	go client.waitRecv(context.Background())
@@ -105,7 +105,6 @@ func (c *Client) Push(msgID, msgType string, payload any, bInit bool) {
 	// global.Debug("before send msg to client", "msgID", msgID, "msg", string(wbuf))
 	// c.send <- wbuf
 
-	global.Debug("before send msg to client", "msg", msg)
 	if err := c.sendMessage(context.Background(), msg); err != nil {
 		slog.Error("send message failed", "msg", msg, "error", err.Error())
 	}
@@ -159,9 +158,13 @@ func (c *Client) SendPing(ctx context.Context) {
 }
 
 func (c *Client) sendMessage(ctx context.Context, wmsg *WMsg) error {
-	global.DebugForce("before send msg to client", "c.Topics", c.Topics, "message", wmsg)
+	global.Debug("before send msg to client", "c.Topic", c.Topic, "message", wmsg)
 	if c.conn != nil {
-		if len(c.Topics) > 0 && strings.Contains(wmsg.Type, c.Topics[0]) {
+		if c.Topic != "" && strings.Contains(wmsg.Type, c.Topic) {
+			if c.WaitInit && !strings.Contains(wmsg.Type, "init") {
+				return nil
+			}
+			c.WaitInit = false
 			if err := wsjson.Write(ctx, c.conn, wmsg); err != nil {
 				return err
 			}

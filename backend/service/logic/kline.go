@@ -15,10 +15,14 @@ const (
 	Microsecond               = 1000 * Nanosecond
 	Millisecond               = 1000 * Microsecond
 	Second                    = 1000 * Millisecond
+
+	KlineType_Init   = "kline_init"
+	KlineType_Update = "kline_update"
 )
 
 var (
-	klines sync.Map
+	klinesInit   sync.Map
+	klinesUpdate sync.Map
 
 	v_Lock_KLine = new(sync.Mutex)
 
@@ -73,24 +77,41 @@ func klinesKey(tokenAddress, timePeroid string) string {
 	return fmt.Sprintf("%s-%v", tokenAddress, timePeroid)
 }
 
-func InitKLine(tokenAddress, timePeroid string) {
-	klines.Store(klinesKey(tokenAddress, timePeroid), nil)
-}
-
-func GetKLine(tokenAddress, timePeroid string) any {
-	v, ok := klines.Load(klinesKey(tokenAddress, timePeroid))
-	if !ok || v == nil {
-		return nil
+func InitKLine(klineType string, tokenAddress, timePeroid string) {
+	if klineType == KlineType_Init {
+		klinesInit.Store(klinesKey(tokenAddress, timePeroid), nil)
+	} else {
+		klinesUpdate.Store(klinesKey(tokenAddress, timePeroid), nil)
 	}
-	return v
 }
 
-func SaveKLine(tokenAddress, timePeroid string, kLine model.TokenOHLCV) {
-	klines.Store(klinesKey(tokenAddress, timePeroid), kLine)
+func GetKLine(klineType string, tokenAddress, timePeroid string) any {
+	if klineType == KlineType_Update {
+		v, ok := klinesUpdate.Load(klinesKey(tokenAddress, timePeroid))
+		if !ok || v == nil {
+			vi, _ := klinesInit.Load(klinesKey(tokenAddress, timePeroid))
+			return vi
+		}
+		return v
+	} else {
+		v, ok := klinesInit.Load(klinesKey(tokenAddress, timePeroid))
+		if !ok || v == nil {
+			return nil
+		}
+		return v
+	}
 }
 
-func UpdateKLine(tokenAddress string, timePeroid string, price decimal.Decimal, timestamp time.Time, volume decimal.Decimal) (bool, model.TokenOHLCV, error) {
-	kline := GetKLine(tokenAddress, timePeroid)
+func SaveKLine(klineType string, tokenAddress, timePeroid string, kLine model.TokenOHLCV) {
+	if klineType == KlineType_Update {
+		klinesUpdate.Store(klinesKey(tokenAddress, timePeroid), kLine)
+	} else {
+		klinesInit.Store(klinesKey(tokenAddress, timePeroid), kLine)
+	}
+}
+
+func UpdateKLine(klineType string, tokenAddress string, timePeroid string, price decimal.Decimal, timestamp time.Time, volume decimal.Decimal) (bool, model.TokenOHLCV, error) {
+	kline := GetKLine(klineType, tokenAddress, timePeroid)
 	timeNow := getTimestamp(timePeroid, timestamp)
 
 	bNext := false
@@ -131,7 +152,7 @@ func UpdateKLine(tokenAddress string, timePeroid string, price decimal.Decimal, 
 			}
 			global.Debug("create next: ", kline, currentKLine)
 		}
-		SaveKLine(tokenAddress, timePeroid, currentKLine)
+		SaveKLine(klineType, tokenAddress, timePeroid, currentKLine)
 		return false, currentKLine, nil
 	} else {
 		currentKLine := kline.(model.TokenOHLCV)
@@ -147,7 +168,7 @@ func UpdateKLine(tokenAddress string, timePeroid string, price decimal.Decimal, 
 		// currentKLine.T = uint64(timestamp.UnixMilli())
 		currentKLine.V = currentKLine.V.Add(volume)
 		global.Debug("update2: ", currentKLine)
-		SaveKLine(tokenAddress, timePeroid, currentKLine)
+		SaveKLine(klineType, tokenAddress, timePeroid, currentKLine)
 		return true, currentKLine, nil
 	}
 }

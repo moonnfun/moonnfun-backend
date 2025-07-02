@@ -3,17 +3,14 @@ package monitor
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"meme3/global"
-	"meme3/server/web"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/shopspring/decimal"
-	"github.com/tidwall/gjson"
 )
 
 const (
@@ -21,7 +18,7 @@ const (
 	c_created_topic_testnet = "0x1c56be39f0a7cd9b5f7d349a32369c4514e78870028ea4b721570f9a0ea3b127"
 )
 
-var TokenCreatedNotify func(tokenCreated any)
+var TokenCreatedNotify func(tokenCreated any) bool
 
 /*
 创建代币事件：
@@ -125,7 +122,9 @@ func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
 			slog.Error("get TokenCreated failed", "log", log, "error", err.Error())
 		} else {
 			if TokenCreatedNotify != nil {
-				go TokenCreatedNotify(tokenCreated)
+				if bHandle := TokenCreatedNotify(tokenCreated); bHandle {
+					return
+				}
 			}
 		}
 	}
@@ -156,73 +155,10 @@ func parseTokenCreated(l types.Log, txTime time.Time) (*TokenCreated, error) {
 		return nil, err
 	}
 	tokenCreated.Time = txTime
-	slog.Info("unpack ok", slog.Any("tokenCreated", tokenCreated))
+	global.Debug("unpack ok", slog.Any("tokenCreated", tokenCreated))
 
 	tokenCreated.TotalSupply = tokenCreated.TotalSupply.Div(decimal.NewFromInt(10).Pow(decimal.NewFromInt(18)))
 	slog.Info("Get TokenCreated successed", "tokenCreated", tokenCreated)
 
 	return tokenCreated, nil
-}
-
-func GetTokenCreated(tokenID string) ([]*TokenCreated, error) {
-	v_rpc_url = C_Web_RpcUrl_main
-	explorerUrl := C_Web_Explorer_main
-	if global.Config.Testnet {
-		v_rpc_url = C_Web_RpcUrl_test
-		explorerUrl = C_Web_Explorer_test
-	}
-
-	fetchUrl := fmt.Sprintf("%s/api/v2/addresses/%s/logs", explorerUrl, GetFactoryAddress())
-	fetchBuf, err := web.HttpGet(fetchUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	ret := make([]*TokenCreated, 0)
-	fetchResult := gjson.Get(string(fetchBuf), "items").Array()
-	for _, result := range fetchResult {
-		topics := result.Get("topics").Array()
-		if len(topics) > 0 && topics[0].String() == c_created_topic {
-			parseArgs, err := ParseLog(topics[0].String(), result.Get("data").String())
-			if err != nil {
-				slog.Error("parse log failed", "log", result.Get("data").String(), "error", err.Error())
-				continue
-			}
-
-			tokenCreated := &TokenCreated{}
-			if err := json.Unmarshal([]byte(parseArgs), tokenCreated); err != nil {
-				slog.Error("get TokenCreated failed", "parseArgs", parseArgs, "error", err.Error())
-				continue
-			}
-			slog.Info("unpack ok", slog.Any("tokenCreated", tokenCreated))
-
-			tokenCreated.Token = common.HexToAddress(result.Get("address.hash").String())
-			tokenCreated.TotalSupply = TrimDecimals(tokenCreated.TotalSupply)
-			slog.Info("Get TokenCreated successed", "tokenCreated", tokenCreated)
-			ret = append(ret, tokenCreated)
-			if tokenID != "" && tokenCreated.TokenId.String() == tokenID {
-				break
-			}
-		}
-	}
-	return ret, nil
-}
-
-func getTokenCreated(topic, data, tokenAddress string) *TokenCreated {
-	parseArgs, err := ParseLog(topic, data)
-	if err != nil {
-		slog.Error("parse log failed", "topic", topic, "log", data, "error", err.Error())
-		return nil
-	}
-
-	tokenCreated := &TokenCreated{}
-	if err := json.Unmarshal([]byte(parseArgs), tokenCreated); err != nil {
-		slog.Error("get TokenCreated failed", "parseArgs", parseArgs, "error", err.Error())
-		return nil
-	}
-	// slog.Info("unpack ok", slog.Any("tokenCreated", tokenCreated))
-
-	tokenCreated.TotalSupply = TrimDecimals(tokenCreated.TotalSupply)
-	global.Debug("Get TokenCreated successed", "tokenCreated", tokenCreated)
-	return tokenCreated
 }
