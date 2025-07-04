@@ -45,12 +45,13 @@ var (
 
 func getTimeList() []string {
 	return []string{
-		"second_1",
+		// "second_1",
 		"minute_1",
+		"minute_5",
 		"minute_15",
 		"hour_4",
 		"day_1",
-		"week_1",
+		// "week_1",
 	}
 }
 
@@ -118,7 +119,12 @@ func UpdateKLine(klineType string, tokenAddress string, timePeroid string, price
 	if kline != nil {
 		startAt := getTimestamp(timePeroid, kline.(model.TokenOHLCV).StartAt)
 		bNext = startAt.Equal(timeNow) == false
-		global.Debug("compare time: ", startAt, timeNow, bNext)
+		if startAt.UnixMilli() > timeNow.UnixMilli() {
+			return false, model.TokenOHLCV{}, fmt.Errorf("ingore kline, price: %v, timestamp: %v", price, timestamp.UnixMilli())
+		}
+		if timePeroid == "minute_1" {
+			global.Debug("compare time: ", kline.(model.TokenOHLCV).StartAt.Unix(), timestamp.Unix(), startAt.Unix(), timeNow.Unix(), bNext)
+		}
 	}
 	if kline == nil || bNext {
 		// // 更新收盘价
@@ -129,6 +135,7 @@ func UpdateKLine(klineType string, tokenAddress string, timePeroid string, price
 		// 启动新K线
 		currentKLine := model.TokenOHLCV{
 			T:       uint64(timeNow.UnixMilli()),
+			OT:      uint64(timestamp.UnixMilli()),
 			StartAt: timeNow,
 		}
 		if kline == nil {
@@ -179,6 +186,8 @@ func getTimestamp(timePeroid string, t time.Time) time.Time {
 		return t
 	case "minute_1":
 		return t.Truncate(time.Minute)
+	case "minute_5":
+		return t.Truncate(5 * time.Minute)
 	case "minute_15":
 		return t.Truncate(15 * time.Minute)
 	case "hour_4":

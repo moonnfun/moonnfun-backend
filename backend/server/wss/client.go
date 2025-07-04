@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"meme3/global"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coder/websocket"
@@ -46,6 +46,13 @@ type WMsg struct {
 	Payload any    `json:"payload"`
 }
 
+type AppendMsg struct {
+	Msg    *WMsg
+	Ktime  string
+	SendCh chan struct{}
+	WaitCh chan struct{}
+}
+
 func WrapMsg(clientID, msgID, t string, payload any) *WMsg {
 	if payload == nil {
 		return &WMsg{Type: t} // fmt.Sprintf(`{"type": "%s"}`, t)
@@ -67,13 +74,12 @@ type Client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
-	// // Buffered channel of outbound messages.
-	// send chan []byte
-
 	Active bool
 
 	Topic    string
 	WaitInit bool
+
+	WaitKlines sync.Map
 }
 
 func NewClient(id string, conn *websocket.Conn) *Client {
@@ -89,22 +95,74 @@ func NewClient(id string, conn *websocket.Conn) *Client {
 
 // A -> B, system -> B
 func (c *Client) Push(msgID, msgType string, payload any, bInit bool) {
-	global.Debug("client push", slog.Any("client", c))
 	if !bInit {
 		if !c.Active && msgType != C_Msg_connection_init {
 			return
 		}
 	}
+	if len(strings.Split(c.Topic, "-")) == 2 {
+		taddress := strings.Split(c.Topic, "-")[0]
+		topicTime := strings.Split(c.Topic, "-")[1]
+		if taddress != "" && strings.Contains(msgID, taddress) {
+			if topicTime != "" && strings.HasSuffix(msgType, topicTime) {
+				c.doPush(msgID, msgType, payload, bInit)
+			}
+		}
+	}
+}
 
+func (c *Client) doPush(msgID, msgType string, payload any, bInit bool) {
 	if msgID == "" {
 		msgID = fmt.Sprintf("system_%v", time.Now().UnixNano())
 	}
 	msg := WrapMsg(c.ID, msgID, msgType, payload)
 
-	// wbuf, _ := json.Marshal(msg)
-	// global.Debug("before send msg to client", "msgID", msgID, "msg", string(wbuf))
-	// c.send <- wbuf
+	// // 为了处理1分钟，5分钟，4小时等换挡临界态，存在数据乱序导致图表异常的问题，
+	// // 采取延迟推送Append消息，直到第一次出现同等时间段的Update消息
+	// strTimestamp := strings.Split(msgID, "_")[1]
+	// if strings.HasPrefix(msgType, global.C_Msg_Price_Append) {
+	// 	appendMsg := &AppendMsg{
+	// 		Msg:    msg,
+	// 		Ktime:  strTimestamp,
+	// 		SendCh: make(chan struct{}),
+	// 		WaitCh: make(chan struct{}),
+	// 	}
+	// 	c.WaitKlines.Store(strTimestamp, appendMsg)
+	// 	go func(appendMsg *AppendMsg) {
+	// 		for {
+	// 			select {
+	// 			case <-appendMsg.SendCh:
+	// 				appendMsg.SendCh = nil
+	// 				if err := c.sendMessage(context.Background(), appendMsg.Msg); err != nil {
+	// 					slog.Error("send append message failed", "msg", msg, "error", err.Error())
+	// 				}
 
+	// 				c.WaitKlines.Delete(appendMsg.Ktime)
+	// 				close(appendMsg.WaitCh)
+	// 				return
+	// 			case <-time.After(10 * time.Second):
+	// 				global.Debug("send append message successed with timeout 10s", "msg", msg)
+	// 				close(appendMsg.SendCh)
+	// 				return
+	// 			}
+	// 		}
+	// 	}(appendMsg)
+	// 	return
+	// } else if strings.HasPrefix(msgType, global.C_Msg_Price_Update) {
+	// 	if appendMsg, ok := c.WaitKlines.Load(strTimestamp); ok {
+	// 		if appendMsg.(*AppendMsg).SendCh != nil {
+	// 			global.Debug("append kline", "timestamp", strTimestamp)
+	// 			close(appendMsg.(*AppendMsg).SendCh)
+	// 		}
+	// 		<-appendMsg.(*AppendMsg).WaitCh
+	// 	}
+	// 	if strings.HasSuffix(msgType, "minute_1") {
+	// 		kline := payload.([]model.TokenOHLCV)[0]
+	// 		global.Debug("update kline", "timestamp", strTimestamp, "UnixMilli", time.UnixMilli(int64(kline.OT)).UnixMilli())
+	// 	}
+	// }
+
+	// push msg to client
 	if err := c.sendMessage(context.Background(), msg); err != nil {
 		slog.Error("send message failed", "msg", msg, "error", err.Error())
 	}
@@ -158,16 +216,14 @@ func (c *Client) SendPing(ctx context.Context) {
 }
 
 func (c *Client) sendMessage(ctx context.Context, wmsg *WMsg) error {
-	global.Debug("before send msg to client", "c.Topic", c.Topic, "message", wmsg)
+	// global.Debug("before send msg to client", "c.Topic", c.Topic, "message", wmsg)
 	if c.conn != nil {
-		if c.Topic != "" && strings.Contains(wmsg.Type, c.Topic) {
-			if c.WaitInit && !strings.Contains(wmsg.Type, "init") {
-				return nil
-			}
-			c.WaitInit = false
-			if err := wsjson.Write(ctx, c.conn, wmsg); err != nil {
-				return err
-			}
+		if c.WaitInit && !strings.Contains(wmsg.Type, "init") {
+			return nil
+		}
+		c.WaitInit = false
+		if err := wsjson.Write(ctx, c.conn, wmsg); err != nil {
+			return err
 		}
 	} else {
 		return fmt.Errorf("invalid connection: %s", c.ID)

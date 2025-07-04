@@ -78,8 +78,8 @@ func WebsocketSubscribe(client *Client, id, address, topic string) error {
 		}
 	}
 	slog.Info("before subscribe", "id", id, "topic", topic, "address", address)
+	client.Topic = fmt.Sprintf("%s-%s", address, topic)
 	client.WaitInit = true
-	client.Topic = topic
 
 	if global.WebsocketSubscribe != nil {
 		client.PushCh = global.WebsocketSubscribe(client.ID, address, topic)
@@ -90,13 +90,13 @@ func WebsocketSubscribe(client *Client, id, address, topic string) error {
 func WebsocketSend(clientID, tokenAddress, msgType string, payload any) error {
 	client, ok := clients.Load(clientID)
 	if ok && client != nil {
-		global.Debug("before send msg to client", "clientID", clientID, "tokenAddress", tokenAddress, "msgType", msgType, "payload", payload)
+		// global.Debug("before send msg to client", "clientID", clientID, "tokenAddress", tokenAddress, "msgType", msgType, "payload", payload)
 		go client.(*Client).Push(tokenAddress, msgType, payload, false)
 		return nil
 	} else {
 		clients.Range(func(key, value any) bool {
-			if c, ok := value.(*Client); ok && c != nil && c.Topic != "" && strings.HasSuffix(msgType, c.Topic) {
-				global.Debug("before broadcast msg to client", "toID", key, "msgType", msgType, "payload", payload)
+			if c, ok := value.(*Client); ok && c != nil && c.Topic != "" {
+				// global.Debug("before broadcast msg to client", "toID", key, "msgType", msgType, "payload", payload)
 				go value.(*Client).Push(tokenAddress, msgType, payload, false)
 			}
 			return true

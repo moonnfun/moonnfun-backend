@@ -6,6 +6,7 @@ import (
 	"meme3/global"
 	"meme3/service/model"
 	"meme3/service/store"
+	"slices"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts"
@@ -17,13 +18,12 @@ import (
 )
 
 func GetUser(address any, bCache bool) (*model.User, error) {
-	// if bCache {
-	// 	u := store.CacheGet(address, false, nil)
-	// 	if u == nil {
-	// 		return nil, fmt.Errorf("can not find user: %s", address)
-	// 	}
-	// 	return u.(*model.User), nil
-	// }
+	if bCache {
+		u := store.CacheGet(address, false, nil)
+		if u != nil {
+			return u.(*model.User), nil
+		}
+	}
 	return store.DBGet[model.User](model.C_User, bson.M{"address": address})
 }
 
@@ -62,11 +62,11 @@ func UserLogin(address, signature, message, refer string) (*model.User, error) {
 		SaveUser(refer, user, bUpdate)
 	}
 
-	// // session
-	// store.CacheSetByTime(user.Address, user, true, time.Duration(global.Config.WebSessionTimeout)*time.Second, func(val any) bool {
-	// 	// go SaveUserToDB(val.(*model.User), true)
-	// 	return true
-	// })
+	// session
+	store.CacheSetByTime(user.Address, user, true, time.Duration(global.Config.WebSessionTimeout)*time.Second, func(val any) bool {
+		// go SaveUserToDB(val.(*model.User), true)
+		return true
+	})
 
 	slog.Info("user login successed", "user", user)
 	return user, nil
@@ -90,10 +90,10 @@ func SaveUser(refer string, user *model.User, bUpdate bool) error {
 }
 
 func RemoveUser(userID any) {
-	// store.CacheGet(userID, true, func(v any) bool {
-	// 	// go SaveUserToDB(v.(*model.User), true)
-	// 	return true
-	// })
+	store.CacheGet(userID, true, func(v any) bool {
+		// go SaveUserToDB(v.(*model.User), true)
+		return true
+	})
 }
 
 func SaveUserToDB(user *model.User, bUpdate bool) error {
@@ -157,4 +157,53 @@ func verifyWalletSignature(address, signatureHex, message string) error {
 		return fmt.Errorf("failed to verify signature")
 	}
 	return nil
+}
+
+func AddFollowToken(userID any, tokenID string, bFollow bool) (*model.Token, error) {
+	user, err := GetUser(userID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	token, err := store.DBGet[model.Token](model.C_Token, bson.M{"id": tokenID})
+	if err != nil {
+		return nil, err
+	}
+	if slices.Contains(user.FollowList, tokenID) {
+		if bFollow {
+			return token, nil
+		} else {
+			for j, tid := range user.FollowList {
+				if tid == tokenID {
+					user.FollowList = slices.Delete(user.FollowList, j, j+1)
+				}
+			}
+		}
+	} else if !bFollow {
+		return nil, fmt.Errorf("invalid operation, userID: %v, tokenID: %s, follow: %v", userID, tokenID, bFollow)
+	} else {
+		user.FollowList = append(user.FollowList, tokenID)
+	}
+	token.Follow = bFollow
+
+	dbID := user.DBID
+	user.DBID = primitive.ObjectID{}
+	if err := store.DBSet(model.C_User, user, bson.M{"address": userID}); err != nil {
+		slog.Error("update user failed", "user", user, "error", err.Error())
+		return nil, err
+	}
+	user.DBID = dbID
+	store.CacheSetByTime(user.Address, user, true, time.Duration(global.Config.WebSessionTimeout)*time.Second, func(val any) bool {
+		// go SaveUserToDB(val.(*model.User), true)
+		return true
+	})
+	return token, nil
+}
+
+func IsFavoriteToken(userID any, tokenID string) bool {
+	user, err := GetUser(userID, true)
+	if err != nil || user == nil {
+		return false
+	}
+	return slices.Contains(user.FollowList, tokenID)
 }

@@ -16,11 +16,14 @@ type BaseModel struct {
 type User struct {
 	BaseModel `bson:",inline"`
 
-	Address     string `json:"address"`
-	Avatar      string `json:"avatar"`
-	FromID      string `json:"fromID"`
-	RefferalID  string `json:"refferalID"`
-	RefferalUrl string `json:"refferalUrl"`
+	Address     string   `json:"address"`
+	Avatar      string   `json:"avatar"`
+	FromID      string   `json:"fromID"`
+	RefferalID  string   `json:"refferalID"`
+	RefferalUrl string   `json:"refferalUrl"`
+	FollowList  []string `json:"followList"`
+
+	Project `bson:",inline"`
 }
 
 type Refferal struct {
@@ -40,6 +43,15 @@ type UserTokenHolder struct {
 	TokenAddress string `json:"address"`
 	TokenHolder
 	Token
+}
+
+type Project struct {
+	Key         string `json:"key"`
+	Name        string `json:"name"`
+	Email       string `json:"email"`
+	Website     string `json:"website"`
+	Twitter     string `json:"twitter"`
+	Description string `json:"description"`
 }
 
 // func (p User) MarshalJSON() ([]byte, error) {
