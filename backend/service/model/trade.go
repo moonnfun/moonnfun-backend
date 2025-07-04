@@ -14,6 +14,7 @@ type Trade struct {
 	Price       decimal.Decimal `json:"price"`
 	MPrice      decimal.Decimal `json:"mprice"`
 	TxHash      string          `json:"txhash"`
+	Source      decimal.Decimal `json:"-" bson:"source"`
 	Timestamp   int64           `json:"timestamp"`
 	QuoteAmount decimal.Decimal `json:"quoteAmount"`
 }
