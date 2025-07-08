@@ -57,6 +57,9 @@ func UserLogin(address, signature, message, refer string) (*model.User, error) {
 			user.RefferalUrl = fmt.Sprintf("%s?refer=%s", global.Config.HostURL, user.RefferalID)
 		}
 	}
+	if user.FollowList == nil {
+		user.FollowList = make([]string, 0)
+	}
 
 	if bSave {
 		SaveUser(refer, user, bUpdate)
