@@ -122,6 +122,9 @@ func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
 			slog.Error("get TokenCreated failed", "log", log, "error", err.Error())
 		} else {
 			if TokenCreatedNotify != nil {
+				if tokenCreated.Creator.String() == "0x0000000000000000000000000000000000000000" {
+					tokenCreated.Creator = common.HexToAddress(GetTxSender(tx.Hash().String()))
+				}
 				if bHandle := TokenCreatedNotify(tokenCreated); bHandle {
 					return
 				}

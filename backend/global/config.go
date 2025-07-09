@@ -21,6 +21,7 @@ type gconf struct {
 	HostURL  string
 	NodePath string
 
+	Sync              bool
 	Testnet           bool
 	LaunchMC          float64
 	StartPrice        float64

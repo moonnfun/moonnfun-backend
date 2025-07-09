@@ -21,6 +21,8 @@ const (
 	C_PushMode_ASync = "PushMode_ASync"
 )
 
+var PushTokenToCache func(field string, token any, totalSize int) error
+
 var WebsocketSubscribe func(id, address, topic string) chan struct{}
 var WebsocketHandler func(w http.ResponseWriter, r *http.Request) error
 var WebsocketSend func(fromID, toID, msgType string, payload any) error

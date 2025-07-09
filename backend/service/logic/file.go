@@ -3,6 +3,7 @@ package logic
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 var Dir string
@@ -35,4 +36,20 @@ func SaveImage(fileName string, fileBuf []byte) error {
 
 	_, err = f.Write(fileBuf)
 	return err
+}
+
+func FindImage(tokenId string) string {
+	entries, err := os.ReadDir(ImageDir)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, entry := range entries {
+		if entry.Type().IsRegular() {
+			if strings.HasPrefix(entry.Name(), tokenId) {
+				return entry.Name()
+			}
+		}
+	}
+	return ""
 }
