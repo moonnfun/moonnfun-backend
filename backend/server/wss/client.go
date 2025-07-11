@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"meme3/global"
 	"strings"
 	"sync"
 	"time"
@@ -222,6 +223,7 @@ func (c *Client) sendMessage(ctx context.Context, wmsg *WMsg) error {
 			return nil
 		}
 		c.WaitInit = false
+		global.Debug("before send msg to client", "c.Topic", c.Topic, "message", wmsg)
 		if err := wsjson.Write(ctx, c.conn, wmsg); err != nil {
 			return err
 		}
