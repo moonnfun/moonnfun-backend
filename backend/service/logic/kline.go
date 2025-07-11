@@ -49,6 +49,7 @@ func getTimeList() []string {
 		"minute_1",
 		"minute_5",
 		"minute_15",
+		"hour_1",
 		"hour_4",
 		"day_1",
 		// "week_1",
@@ -190,6 +191,8 @@ func getTimestamp(timePeroid string, t time.Time) time.Time {
 		return t.Truncate(5 * time.Minute)
 	case "minute_15":
 		return t.Truncate(15 * time.Minute)
+	case "hour_1":
+		return t.Truncate(1 * time.Hour)
 	case "hour_4":
 		return t.Truncate(4 * time.Hour)
 	case "day_1":

@@ -21,6 +21,7 @@ const (
 	C_PushMode_ASync = "PushMode_ASync"
 )
 
+var GetLatestNumber func() int64
 var PushTokenToCache func(field string, token any, totalSize int) error
 
 var WebsocketSubscribe func(id, address, topic string) chan struct{}

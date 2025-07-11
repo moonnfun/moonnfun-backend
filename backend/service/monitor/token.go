@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"math/big"
 	"meme3/global"
 	"time"
 
@@ -106,6 +107,7 @@ func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
 	// transferTopic := common.BytesToHash(crypto.Keccak256(transferSig))
 	query := ethereum.FilterQuery{
 		FromBlock: header.Number,
+		ToBlock:   big.NewInt(header.Number.Int64() + 1),
 		Addresses: []common.Address{contractAddress},
 		Topics:    [][]common.Hash{{tokenCreatedTopic}},
 	}
@@ -125,6 +127,7 @@ func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
 				if tokenCreated.Creator.String() == "0x0000000000000000000000000000000000000000" {
 					tokenCreated.Creator = common.HexToAddress(GetTxSender(tx.Hash().String()))
 				}
+				// tokenCreated.Time = time.UnixMilli(int64(header.Time))
 				if bHandle := TokenCreatedNotify(tokenCreated); bHandle {
 					return
 				}

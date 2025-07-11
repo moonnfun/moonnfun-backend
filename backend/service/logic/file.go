@@ -41,7 +41,7 @@ func SaveImage(fileName string, fileBuf []byte) error {
 func FindImage(tokenId string) string {
 	entries, err := os.ReadDir(ImageDir)
 	if err != nil {
-		panic(err)
+		return tokenId + ".png"
 	}
 
 	for _, entry := range entries {
@@ -51,5 +51,5 @@ func FindImage(tokenId string) string {
 			}
 		}
 	}
-	return ""
+	return tokenId + ".png"
 }

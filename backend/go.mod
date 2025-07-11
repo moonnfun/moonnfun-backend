@@ -5,14 +5,15 @@ go 1.23.0
 toolchain go1.23.1
 
 require (
+	github.com/99nil/gopkg v0.0.0-20220607055250-e19b23d7661a
 	github.com/BurntSushi/toml v1.4.0
 	github.com/coder/websocket v1.8.13
 	github.com/didip/tollbooth v4.0.2+incompatible
 	github.com/didip/tollbooth_negroni v0.0.0-20170928042109-a4e3efc33255
 	github.com/ethereum/go-ethereum v1.15.11
+	github.com/fsnotify/fsnotify v1.6.0
 	github.com/gorilla/securecookie v1.1.2
 	github.com/gorilla/sessions v1.4.0
-	github.com/gorilla/websocket v1.5.3
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/phyber/negroni-gzip v1.0.0
 	github.com/qiniu/qmgo v1.1.9
@@ -27,7 +28,6 @@ require (
 )
 
 require (
-	github.com/99nil/gopkg v0.0.0-20220607055250-e19b23d7661a // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/StackExchange/wmi v1.2.1 // indirect
 	github.com/bits-and-blooms/bitset v1.20.0 // indirect
@@ -39,13 +39,12 @@ require (
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
 	github.com/ethereum/c-kzg-4844/v2 v2.1.0 // indirect
 	github.com/ethereum/go-verkle v0.2.2 // indirect
-	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
 	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/holiman/uint256 v1.3.2 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/leodido/go-urn v1.2.0 // indirect

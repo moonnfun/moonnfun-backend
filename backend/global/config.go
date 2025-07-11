@@ -9,6 +9,9 @@ import (
 )
 
 const (
+	C_Mode_Sync   = "sync"
+	C_Mode_Server = "server"
+
 	C_websession_timeout = 3 * 24 * 3600
 )
 
