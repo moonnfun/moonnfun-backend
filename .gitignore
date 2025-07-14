@@ -26,4 +26,5 @@ test/
 dist/
 vendor/
 .backup/
+.angular/
 node_modules/

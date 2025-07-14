@@ -3,6 +3,8 @@ package global
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/shopspring/decimal"
 )
 
 // web3 network
@@ -23,6 +25,7 @@ const (
 
 var GetLatestNumber func() int64
 var PushTokenToCache func(field string, token any, totalSize int) error
+var GetAveragePrice func(tokenAddress, wallet string, totalAmount decimal.Decimal) (decimal.Decimal, error)
 
 var WebsocketSubscribe func(id, address, topic string) chan struct{}
 var WebsocketHandler func(w http.ResponseWriter, r *http.Request) error
