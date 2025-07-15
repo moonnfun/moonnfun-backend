@@ -29,4 +29,5 @@ type Statistics struct {
 type WebTrade struct {
 	Trade
 	Token
+	TokenAddress string `json:"tokenAddress"`
 }
