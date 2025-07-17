@@ -38,6 +38,21 @@ func SaveImage(fileName string, fileBuf []byte) error {
 	return err
 }
 
+func SaveImageForSub(subDir, fileName string, fileBuf []byte) error {
+	fullPath := filepath.Join(ImageDir, fileName)
+	if subDir != "" {
+		fullPath = filepath.Join(ImageDir, subDir, fileName)
+	}
+	f, err := os.Create(fullPath)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	_, err = f.Write(fileBuf)
+	return err
+}
+
 func FindImage(tokenId string) string {
 	entries, err := os.ReadDir(ImageDir)
 	if err != nil {

@@ -16,7 +16,8 @@ const (
 )
 
 type gconf struct {
-	// Server
+	Debug bool
+
 	Log      string
 	Port     int
 	Mode     string
