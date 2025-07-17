@@ -5,6 +5,7 @@ const (
 	C_Listing = "listing"
 
 	C_Status_listed        = "listed"
+	C_Status_removed       = "removed"
 	C_Status_verifying     = "verifying"
 	C_Status_verify_failed = "verifyFailed"
 )

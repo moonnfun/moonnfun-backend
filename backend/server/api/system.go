@@ -53,6 +53,17 @@ func initSystem(api *swag.API) {
 	)
 	api.AddEndpoint(
 		endpoint.New(
+			http.MethodGet, "/system/listing/prepare",
+			endpoint.Tags("System"),
+			endpoint.Handler(WebSystemListingPrepare),
+			endpoint.Summary("System listing prepare"),
+			endpoint.Description("System listing prepare"),
+			endpoint.Query("tokenAddress", "string", "token address", false),
+			endpoint.Response(http.StatusOK, "Successfully add user", endpoint.SchemaResponseOption(model.ListingWait{})),
+		),
+	)
+	api.AddEndpoint(
+		endpoint.New(
 			http.MethodPost, "/system/listing",
 			endpoint.Tags("System"),
 			endpoint.Handler(WebSystemListing),
@@ -117,12 +128,22 @@ func webSystemOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for i, ol := range orderList {
-		orderList[i].Remain = time.UnixMilli(ol.Start).Add(logic.V_listing_timeout).UnixMilli() - timeNow
+		if orderList[i].Status == model.C_Status_listed {
+			orderList[i].Remain = time.UnixMilli(ol.Start).Add(logic.V_listing_timeout).UnixMilli() - timeNow
+			if orderList[i].Remain < 0 {
+				orderList[i].Status = model.C_Status_removed
+				orderList[i].Remain = 0
+			}
+		}
 	}
 	WebResponseJson(w, r, ApiResponse(orderList, true), http.StatusOK)
 }
 
 func webSystemListingWait(w http.ResponseWriter, r *http.Request) {
+	WebResponseJson(w, r, ApiResponse(logic.GetListingWait(), true), http.StatusOK)
+}
+
+func WebSystemListingPrepare(w http.ResponseWriter, r *http.Request) {
 	userID := web.PopFromSession(r, web.C_Session_User)
 	if userID == nil {
 		if !global.Config.Debug {
@@ -133,6 +154,12 @@ func webSystemListingWait(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	l := logic.GetListingWait()
+	if l != nil && l.Total >= logic.C_listing_max {
+		WebResponseJson(w, r, ApiError("push listing faild with reaching the limit"), http.StatusInternalServerError)
+		return
+	}
+
 	// check CA
 	tokenAddress := WebParams(r).Get("tokenAddress")
 	if tokenAddress != "" {
@@ -141,7 +168,9 @@ func webSystemListingWait(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	WebResponseJson(w, r, ApiResponse(logic.GetListingWait(), true), http.StatusOK)
+	logic.PushListingWait(fmt.Sprintf("%v", userID), tokenAddress)
+
+	WebResponseJson(w, r, ApiResponse(l, true), http.StatusOK)
 }
 
 func WebSystemListing(w http.ResponseWriter, r *http.Request) {
@@ -190,11 +219,6 @@ func WebSystemListing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// push, 先霸占位置, 如果超时未获取到已支付进行清除
-	if err := logic.PushListing(listing, false); err != nil {
-		WebResponseJson(w, r, ApiError(err.Error()), http.StatusInternalServerError)
-		return
-	}
 	go logic.CheckListing(listing)
 
 	WebResponseJson(w, r, ApiResponse(listing, true), http.StatusOK)
