@@ -58,6 +58,7 @@ func initSystem(api *swag.API) {
 			endpoint.Handler(WebSystemListingPrepare),
 			endpoint.Summary("System listing prepare"),
 			endpoint.Description("System listing prepare"),
+			endpoint.Query("cancel", "string", "cancel or not", false),
 			endpoint.Query("tokenAddress", "string", "token address", false),
 			endpoint.Response(http.StatusOK, "Successfully add user", endpoint.SchemaResponseOption(model.ListingWait{})),
 		),
@@ -153,9 +154,10 @@ func WebSystemListingPrepare(w http.ResponseWriter, r *http.Request) {
 			userID = WebParams(r).Get("address")
 		}
 	}
+	cancel := WebParams(r).Get("cancel")
 
 	l := logic.GetListingWait()
-	if l != nil && l.Total >= logic.C_listing_max {
+	if l != nil && l.Total >= logic.C_listing_max && cancel != "true" {
 		WebResponseJson(w, r, ApiError("push listing faild with reaching the limit"), http.StatusInternalServerError)
 		return
 	}
@@ -168,8 +170,13 @@ func WebSystemListingPrepare(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	logic.PushListingWait(fmt.Sprintf("%v", userID), tokenAddress)
 
+	if WebParams(r).Get("cancel") == "true" {
+		logic.RemoveListingWait(fmt.Sprintf("%v", userID), tokenAddress, "user cancel")
+		l = logic.GetListingWait()
+	} else {
+		logic.PushListingWait(fmt.Sprintf("%v", userID), tokenAddress)
+	}
 	WebResponseJson(w, r, ApiResponse(l, true), http.StatusOK)
 }
 
