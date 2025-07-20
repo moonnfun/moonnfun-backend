@@ -104,3 +104,9 @@ func WebsocketSend(clientID, tokenAddress, msgType string, payload any) error {
 	}
 	return nil
 }
+
+func WebsocketRemoveClient(clientID string) {
+	if clientID != "" {
+		clients.Delete(clientID)
+	}
+}

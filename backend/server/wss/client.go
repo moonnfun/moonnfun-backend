@@ -228,6 +228,7 @@ func (c *Client) sendMessage(ctx context.Context, wmsg *WMsg) error {
 			return err
 		}
 	} else {
+		WebsocketRemoveClient(c.ID)
 		return fmt.Errorf("invalid connection: %s", c.ID)
 	}
 	return nil
