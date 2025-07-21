@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"meme3/global"
+	"meme3/service/store"
 	"net/http"
 	"strings"
 	"sync"
@@ -29,16 +30,22 @@ func HttpToWebsocket(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	if c, ok := clients.Load(r.RemoteAddr); ok && c != nil {
-		slog.Info("Before reset websocket client", "websocketClient", c)
-		c.(*Client).Close()
-		// return fmt.Errorf("connect websocket again and again, address: %s", conn.RemoteAddr().String())
-	}
+	// if c, ok := clients.Load(clientID); ok && c != nil {
+	// 	slog.Info("Before reset websocket client", "websocketClient", c)
+	// 	c.(*Client).Close()
+	// 	// return fmt.Errorf("connect websocket again and again, address: %s", conn.RemoteAddr().String())
+	// }
+	clientId := store.NewId()
+	clients.Store(clientId, NewClient(clientId, conn))
+	slog.Info("Reveive websocket client", "clientId", clientId)
 
-	// add client
-	client := NewClient(r.RemoteAddr, conn)
-	clients.Store(r.RemoteAddr, client)
-	slog.Info("Add websocket client", "address", r.RemoteAddr)
+	// // add client
+	// if clientID == "" {
+	// 	clientID = store.NewId()
+	// }
+	// client := NewClient(clientID, conn)
+	// clients.Store(clientID, client)
+	// slog.Info("Add websocket client", "address", clientID)
 	return nil
 }
 
@@ -50,14 +57,21 @@ func MsgHandle(client *Client, msg []byte) (bHandle bool, retErr error) {
 
 	if wmsg.Type == C_Msg_connection_init {
 		client.Active = true
-		client.Push("", C_Msg_connection_ack, nil, false)
-		client.SendPing(context.Background())
-		slog.Info("receive websocket msg successed", "msg", wmsg)
+		oldID := fmt.Sprintf("%v", wmsg.Payload)
+		go client.SendPing(context.Background())
+		client.doPush("", C_Msg_connection_ack, client.ID, true)
+		if oldID != client.ID && oldID != "" {
+			if c, ok := clients.Load(oldID); ok && c != nil {
+				slog.Info("Before reset websocket client", "websocketClient", c)
+				WebsocketRemoveClient(oldID)
+			}
+		}
+		slog.Info("receive websocket init successed", "msg", wmsg)
 	} else if wmsg.Type == C_Msg_topic_subscribe {
 		// format: address-second_1
-		slog.Info("receive websocket msg successed", "msg", wmsg)
+		slog.Info("receive websocket subscribe successed", "msg", wmsg)
 		subMsgs := strings.Split(fmt.Sprintf("%v", wmsg.Payload), "-")
-		WebsocketSubscribe(client, wmsg.ID, subMsgs[0], subMsgs[1])
+		WebsocketSubscribe(client, client.ID, subMsgs[0], subMsgs[1])
 	} else {
 		return false, nil
 	}
@@ -77,7 +91,7 @@ func WebsocketSubscribe(client *Client, id, address, topic string) error {
 			client.Active = true
 		}
 	}
-	slog.Info("before subscribe", "id", id, "topic", topic, "address", address)
+	slog.Info("before subscribe", "client", client, "topic", topic, "address", address)
 	client.Topic = fmt.Sprintf("%s-%s", address, topic)
 	client.WaitInit = true
 
@@ -108,5 +122,13 @@ func WebsocketSend(clientID, tokenAddress, msgType string, payload any) error {
 func WebsocketRemoveClient(clientID string) {
 	if clientID != "" {
 		clients.Delete(clientID)
+	}
+}
+
+func WebsocketStatus(clientID string) bool {
+	if c, ok := clients.Load(clientID); ok && c != nil && c.(*Client).GetConn() != nil {
+		return true
+	} else {
+		return false
 	}
 }

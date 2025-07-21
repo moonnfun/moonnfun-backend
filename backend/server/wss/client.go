@@ -166,14 +166,21 @@ func (c *Client) doPush(msgID, msgType string, payload any, bInit bool) {
 	// push msg to client
 	if err := c.sendMessage(context.Background(), msg); err != nil {
 		slog.Error("send message failed", "msg", msg, "error", err.Error())
+		// c.Close()
 	}
 }
 
 func (c *Client) Close() {
 	if c.conn != nil {
+		global.Debug("before close websocket", "client", c)
 		c.conn.Close(websocket.StatusInternalError, "internal error")
+		WebsocketRemoveClient(c.ID)
 		c.conn = nil
 	}
+}
+
+func (c *Client) GetConn() *websocket.Conn {
+	return c.conn
 }
 
 func (c *Client) waitRecv(ctx context.Context) {

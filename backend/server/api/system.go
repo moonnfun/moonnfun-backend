@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"meme3/global"
 	"meme3/server/web"
+	"meme3/server/wss"
 	"meme3/service/logic"
 	"meme3/service/model"
 	"meme3/service/store"
@@ -99,10 +100,26 @@ func initSystem(api *swag.API) {
 			// endpoint.Security("petstore_auth", "read:pets", "write:pets"),
 		),
 	)
+	api.AddEndpoint(
+		endpoint.New(
+			http.MethodGet, "/system/ws/status",
+			endpoint.Tags("System"),
+			endpoint.Handler(websocketStatus),
+			endpoint.Summary("system webscoekt"),
+			endpoint.Description("get websocket status"),
+			endpoint.Query("id", "string", "websocket id", false),
+			endpoint.Response(http.StatusOK, "successed", endpoint.SchemaResponseOption([]string{})),
+			// endpoint.Security("petstore_auth", "read:pets", "write:pets"),
+		),
+	)
 }
 
 func webSystemBanner(w http.ResponseWriter, r *http.Request) {
 	WebResponseJson(w, r, ApiResponse(logic.GetCacheListing(), true), http.StatusOK)
+}
+
+func websocketStatus(w http.ResponseWriter, r *http.Request) {
+	WebResponseJson(w, r, ApiResponse(wss.WebsocketStatus(WebParams(r).Get("id")), true), http.StatusOK)
 }
 
 func webSystemOrders(w http.ResponseWriter, r *http.Request) {

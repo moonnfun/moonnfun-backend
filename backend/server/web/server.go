@@ -103,7 +103,9 @@ func newAPILog(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 
 	ts := time.Now()
 	next(rw, r)
-	slog.Info(fmt.Sprintf("%s %s", r.Method, r.RequestURI), "time", time.Since(ts).Milliseconds())
+	if r.URL.Path != "/api/v1/system/ws/status" {
+		slog.Info(fmt.Sprintf("%s %s", r.Method, r.RequestURI), "time", time.Since(ts).Milliseconds())
+	}
 }
 
 func newAuth(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
