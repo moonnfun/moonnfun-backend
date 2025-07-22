@@ -26,13 +26,13 @@ func CachePush(vcache *sync.Map, key, val any, bForce bool) error {
 }
 
 // delete: beforeDelleteFunc return true
-func CachePop(vcache *sync.Map, key any, bDelete bool, beforeDelleteFunc func(v any) bool) any {
+func CachePop(vcache *sync.Map, key any, bDelete bool, beforeDelleteFunc func(k, v any) bool) any {
 	if vcache == nil {
 		return errors.New("invalid cache")
 	}
 	val, ok := vcache.Load(key)
 	if ok && bDelete {
-		if beforeDelleteFunc != nil && !beforeDelleteFunc(val) {
+		if beforeDelleteFunc != nil && !beforeDelleteFunc(key, val) {
 			return val
 		}
 		vcache.Delete(key)
@@ -40,7 +40,7 @@ func CachePop(vcache *sync.Map, key any, bDelete bool, beforeDelleteFunc func(v 
 	return val
 }
 
-func CachePushByTime(vcache *sync.Map, key any, val any, bForce bool, timeout time.Duration, callback func(val any) bool) error {
+func CachePushByTime(vcache *sync.Map, key any, val any, bForce bool, timeout time.Duration, callback func(key, val any) bool) error {
 	if vcache == nil {
 		return errors.New("invalid cache")
 	}
@@ -52,7 +52,7 @@ func CachePushByTime(vcache *sync.Map, key any, val any, bForce bool, timeout ti
 	vcache.Store(key, val)
 
 	if timeout > 0 {
-		go func(vcache *sync.Map, key, val any, timeout time.Duration, callback func(val any) bool) {
+		go func(vcache *sync.Map, key, val any, timeout time.Duration, callback func(key, val any) bool) {
 			for {
 				select {
 				case <-time.After(timeout):

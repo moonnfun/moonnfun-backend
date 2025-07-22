@@ -29,6 +29,7 @@ func HttpToWebsocket(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
+	oldID := r.URL.Query().Get("id")
 
 	// if c, ok := clients.Load(clientID); ok && c != nil {
 	// 	slog.Info("Before reset websocket client", "websocketClient", c)
@@ -36,8 +37,19 @@ func HttpToWebsocket(w http.ResponseWriter, r *http.Request) error {
 	// 	// return fmt.Errorf("connect websocket again and again, address: %s", conn.RemoteAddr().String())
 	// }
 	clientId := store.NewId()
-	clients.Store(clientId, NewClient(clientId, conn))
+	client := NewClient(clientId, conn)
+	clients.Store(clientId, client)
 	slog.Info("Reveive websocket client", "clientId", clientId)
+
+	client.Active = true
+	go client.SendPing(context.Background())
+	client.doPush("", C_Msg_connection_ack, client.ID, true)
+	if oldID != client.ID && oldID != "" {
+		if c, ok := clients.Load(oldID); ok && c != nil {
+			slog.Info("Before reset websocket client", "websocketClient", c)
+			WebsocketRemoveClient(oldID)
+		}
+	}
 
 	// // add client
 	// if clientID == "" {
@@ -56,16 +68,16 @@ func MsgHandle(client *Client, msg []byte) (bHandle bool, retErr error) {
 	}
 
 	if wmsg.Type == C_Msg_connection_init {
-		client.Active = true
-		oldID := fmt.Sprintf("%v", wmsg.Payload)
-		go client.SendPing(context.Background())
-		client.doPush("", C_Msg_connection_ack, client.ID, true)
-		if oldID != client.ID && oldID != "" {
-			if c, ok := clients.Load(oldID); ok && c != nil {
-				slog.Info("Before reset websocket client", "websocketClient", c)
-				WebsocketRemoveClient(oldID)
-			}
-		}
+		// client.Active = true
+		// oldID := fmt.Sprintf("%v", wmsg.Payload)
+		// go client.SendPing(context.Background())
+		// client.doPush("", C_Msg_connection_ack, client.ID, true)
+		// if oldID != client.ID && oldID != "" {
+		// 	if c, ok := clients.Load(oldID); ok && c != nil {
+		// 		slog.Info("Before reset websocket client", "websocketClient", c)
+		// 		WebsocketRemoveClient(oldID)
+		// 	}
+		// }
 		slog.Info("receive websocket init successed", "msg", wmsg)
 	} else if wmsg.Type == C_Msg_topic_subscribe {
 		// format: address-second_1
@@ -96,7 +108,7 @@ func WebsocketSubscribe(client *Client, id, address, topic string) error {
 	client.WaitInit = true
 
 	if global.WebsocketSubscribe != nil {
-		client.PushCh = global.WebsocketSubscribe(client.ID, address, topic)
+		go global.WebsocketSubscribe(client.ID, address, topic)
 	}
 	return nil
 }
