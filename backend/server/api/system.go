@@ -31,6 +31,16 @@ type BannerImage struct {
 func initSystem(api *swag.API) {
 	api.AddEndpoint(
 		endpoint.New(
+			http.MethodGet, "/system/mainnet",
+			endpoint.Tags("System"),
+			endpoint.Handler(webSystemMainnet),
+			endpoint.Summary("system mainnet"),
+			endpoint.Description("check system status"),
+			endpoint.Response(http.StatusOK, "successed", endpoint.SchemaResponseOption([]string{})),
+		),
+	)
+	api.AddEndpoint(
+		endpoint.New(
 			http.MethodGet, "/system/banner",
 			endpoint.Tags("System"),
 			endpoint.Handler(webSystemBanner),
@@ -112,6 +122,10 @@ func initSystem(api *swag.API) {
 			// endpoint.Security("petstore_auth", "read:pets", "write:pets"),
 		),
 	)
+}
+
+func webSystemMainnet(w http.ResponseWriter, r *http.Request) {
+	WebResponseJson(w, r, ApiResponse(!global.Config.Testnet, true), http.StatusOK)
 }
 
 func webSystemBanner(w http.ResponseWriter, r *http.Request) {
