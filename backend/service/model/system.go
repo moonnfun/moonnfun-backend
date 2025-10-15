@@ -1,5 +1,7 @@
 package model
 
+import "github.com/ethereum/go-ethereum/common"
+
 const (
 	C_System  = "system"
 	C_Listing = "listing"
@@ -53,3 +55,7 @@ type ListingList []*Listing
 func (t ListingList) Len() int           { return len(t) }
 func (t ListingList) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 func (t ListingList) Less(i, j int) bool { return t[i].Start > t[j].Start }
+
+func FormatAddress(addr string) string {
+	return common.HexToAddress(addr).String()
+}
