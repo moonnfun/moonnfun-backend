@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"context"
 	"encoding/json"
 	"log/slog"
 	"math/big"
@@ -91,7 +90,7 @@ func GetFactoryAddress() string {
 	return address
 }
 
-func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
+func HandleTokenCreatedTx(header *types.Block, tx *types.Transaction) {
 	factoryAddress := GetFactoryAddress()
 	if tx != nil && tx.To() != nil && tx.To().String() != factoryAddress {
 		return
@@ -106,12 +105,12 @@ func HandleTokenCreatedTx(header *types.Header, tx *types.Transaction) {
 	// transferSig := []byte("CreateToken(uint256 tokenId, address token, string name, string symbol, uint256 totalSupply)")
 	// transferTopic := common.BytesToHash(crypto.Keccak256(transferSig))
 	query := ethereum.FilterQuery{
-		FromBlock: header.Number,
-		ToBlock:   big.NewInt(header.Number.Int64() + 1),
+		FromBlock: header.Number(),
+		ToBlock:   big.NewInt(header.Number().Int64() + 1),
 		Addresses: []common.Address{contractAddress},
 		Topics:    [][]common.Hash{{tokenCreatedTopic}},
 	}
-	logs, err := v_wss_client.FilterLogs(context.Background(), query)
+	logs, err := GetLogs(v_wss_client, tx, query)
 	if err != nil {
 		slog.Error("get TokenCreated failed", "txHash", tx.Hash().String(), "error", err.Error())
 		return

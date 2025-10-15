@@ -146,6 +146,7 @@ func (d Decimal) EncodeValue(ec bsoncodec.EncodeContext, vw bsonrw.ValueWriter, 
 	}
 
 	dec := val.Interface().(decimal.Decimal)
+	dec, _ = decimal.NewFromString(dec.StringFixed(20))
 	dec128, err := primitive.ParseDecimal128(dec.String())
 	if err != nil {
 		return err
