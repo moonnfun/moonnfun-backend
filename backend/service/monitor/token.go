@@ -31,6 +31,7 @@ type TokenCreated struct {
 	Name        string          `json:"name"`
 	Symbol      string          `json:"symbol"`
 	Time        time.Time       `json:"time"`
+	BlockNumber int64           `json:"blockNumber"`
 	TotalSupply decimal.Decimal `json:"totalSupply"`
 }
 
@@ -85,14 +86,8 @@ type TokenCreated struct {
 // 	}
 // }
 
-func GetFactoryAddress() string {
-	address := global.Config.ContractAddress
-	return address
-}
-
-func HandleTokenCreatedTx(header *types.Block, tx *types.Transaction) {
-	factoryAddress := GetFactoryAddress()
-	if tx != nil && tx.To() != nil && tx.To().String() != factoryAddress {
+func HandleTokenCreatedTx(height *big.Int, tx *TxData, receiptBuf []byte) {
+	if common.HexToAddress(tx.To).Cmp(common.HexToAddress(global.Config.ContractAddress)) != 0 {
 		return
 	}
 
@@ -101,31 +96,32 @@ func HandleTokenCreatedTx(header *types.Block, tx *types.Transaction) {
 		tokenCreatedTopic = common.HexToHash(c_created_topic_testnet)
 	}
 
-	contractAddress := common.HexToAddress(factoryAddress)
+	blockHash := common.HexToHash(tx.BlockHash)
+	contractAddress := common.HexToAddress(global.Config.ContractAddress)
 	// transferSig := []byte("CreateToken(uint256 tokenId, address token, string name, string symbol, uint256 totalSupply)")
 	// transferTopic := common.BytesToHash(crypto.Keccak256(transferSig))
 	query := ethereum.FilterQuery{
-		FromBlock: header.Number(),
-		ToBlock:   big.NewInt(header.Number().Int64() + 1),
+		BlockHash: &blockHash,
 		Addresses: []common.Address{contractAddress},
 		Topics:    [][]common.Hash{{tokenCreatedTopic}},
 	}
-	logs, err := GetLogs(v_wss_client, tx, query)
+	logs, err := GetLogs(v_wss_client, tx, query, receiptBuf)
 	if err != nil {
-		slog.Error("get TokenCreated failed", "txHash", tx.Hash().String(), "error", err.Error())
+		slog.Error("get TokenCreated failed", "txHash", tx.Hash, "error", err.Error())
 		return
 	}
 
 	for _, log := range logs {
 		slog.Info("HandleTokenCreatedTx successed", slog.Any("log", log))
-		tokenCreated, err := parseTokenCreated(log, tx.Time())
+		tokenCreated, err := parseTokenCreated(log, tx.Time)
 		if err != nil {
 			slog.Error("get TokenCreated failed", "log", log, "error", err.Error())
 		} else {
 			if TokenCreatedNotify != nil {
 				if tokenCreated.Creator.String() == "0x0000000000000000000000000000000000000000" {
-					tokenCreated.Creator = common.HexToAddress(GetTxSender(tx.Hash().String()))
+					tokenCreated.Creator = common.HexToAddress(GetTxSender(tx.Hash))
 				}
+				tokenCreated.BlockNumber = height.Int64()
 				// tokenCreated.Time = time.UnixMilli(int64(header.Time))
 				if bHandle := TokenCreatedNotify(tokenCreated); bHandle {
 					return
